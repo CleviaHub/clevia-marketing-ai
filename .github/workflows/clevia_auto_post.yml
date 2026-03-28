@@ -12,13 +12,11 @@ jobs:
         with:
           python-version: '3.9'
       - name: Install Dependencies
-        run: |
-          pip install requests
-      - name: Run Clevia Marketing Bot
+        run: pip install requests
+      - name: Run Bot
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_BUSINESS_ID: ${{ secrets.IG_BUSINESS_ID }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          python main.py
+        run: python main.py
