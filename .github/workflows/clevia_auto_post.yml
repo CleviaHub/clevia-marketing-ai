@@ -1,7 +1,7 @@
 name: Clevia Auto Post
 
 on:
-  workflow_dispatch: # Biar lo bisa klik tombol "Run" manual
+  workflow_dispatch:
 
 jobs:
   build:
