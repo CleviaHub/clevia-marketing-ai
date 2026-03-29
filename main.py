@@ -65,17 +65,17 @@ Tulis hanya captionnya saja, tanpa penjelasan tambahan."""
 def send_discord_preview(product, caption, image_url):
     print("📨 Sending preview to Discord...")
     message = {
-        "content": f"""🔔 *CLEVIA AUTO POST – PREVIEW*
-
-📦 Produk: {product['name']} – {product['variant']} ({product['size']})
-💰 Harga: {product['price']}
-🖼️ Image: {image_url}
-
-📝 *Caption:*
-{caption}
-
-⏳ Post akan otomatis tayang dalam *{WAIT_MINUTES} menit*.
-❌ Batalkan workflow di GitHub Actions jika tidak ingin dipost."""
+        "content": f"🔔 *CLEVIA AUTO POST – PREVIEW\n\n⏳ Post akan otomatis tayang dalam *{WAIT_MINUTES} menit**.\n❌ Batalkan workflow di GitHub Actions jika tidak ingin dipost.",
+        "embeds": [
+            {
+                "title": f"{product['name']} – {product['variant']} ({product['size']})",
+                "description": f"💰 *Harga:* {product['price']}\n\n📝 *Caption:*\n{caption}",
+                "image": {
+                    "url": image_url
+                },
+                "color": 3447003
+            }
+        ]
     }
     r = requests.post(DISCORD_WEBHOOK_URL, json=message)
     if r.status_code in [200, 204]:
