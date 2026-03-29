@@ -1,6 +1,9 @@
 name: Clevia Auto Post
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'   # Jam 07.00 WIB
+    - cron: '0 12 * * *'  # Jam 19.00 WIB
 jobs:
   build:
     runs-on: ubuntu-latest
