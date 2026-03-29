@@ -12,7 +12,9 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
 PRODUCTS_FILE = "products.json"
 COUNTER_FILE = "post_counter.txt"
-WAIT_MINUTES = 30
+
+# BUAT NGETES KITA JADIIN 1 MENIT DULU. Nanti kalau udah sukses, ganti lagi ke 30.
+WAIT_MINUTES = 1 
 
 def get_next_product(products):
     try:
@@ -72,21 +74,20 @@ def send_telegram_preview(product, caption, image_url):
 📝 Caption:
 {caption}
 
-⏳ Post akan otomatis tayang dalam {WAIT_MINUTES} menit.
-❌ Batalkan di GitHub Actions jika tidak ingin dipost."""
+⏳ Post tayang dalam {WAIT_MINUTES} menit."""
 
     r = requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
-        data={
-            "chat_id": TELEGRAM_CHAT_ID,
-            "caption": text,
-            "photo": image_url
-        }
+        data={"chat_id": TELEGRAM_CHAT_ID, "caption": text},
+        files={"photo": requests.get(image_url).content} if requests.get(image_url).status_code == 200 else None
     )
+    # Gue ubah cara kirim fotonya biar langsung di-download & dikirim, lebih aman!
+    
     if r.status_code == 200:
         print("✅ Preview terkirim ke Telegram!")
     else:
         print(f"❌ Telegram error: {r.status_code} | {r.json()}")
+        exit(1) # PAKSA GITHUB MERAH KALAU TELEGRAM GAGAL
 
 def post_to_ig(image_url, caption):
     print("📤 Uploading media to Instagram...")
@@ -96,8 +97,9 @@ def post_to_ig(image_url, caption):
     )
     print(f"Upload Status: {r.status_code} | Response: {r.json()}")
     if r.status_code != 200:
-        print("❌ Upload gagal.")
-        return
+        print("❌ Upload IG gagal.")
+        exit(1) # PAKSA GITHUB MERAH KALAU IG GAGAL
+
     creation_id = r.json().get('id')
     print("🚀 Publishing post...")
     r_pub = requests.post(
@@ -108,17 +110,18 @@ def post_to_ig(image_url, caption):
     if r_pub.status_code == 200:
         print("✅ Post Clevia berhasil tayang di Instagram!")
     else:
-        print("❌ Publish gagal.")
+        print("❌ Publish IG gagal.")
+        exit(1)
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     with open(PRODUCTS_FILE, "r") as f:
         products = json.load(f)
 
     product = get_next_product(products)
     print(f"📦 Produk: {product['name']} – {product['variant']}")
 
-    image_filename = requests.utils.quote(product['image'])
-    image_url = REPO_BASE_URL + image_filename
+    # PERBAIKAN: Jangan pakai quote biar path gambarnya nggak rusak
+    image_url = REPO_BASE_URL + product['image']
 
     caption = generate_caption(product)
     if not caption:
