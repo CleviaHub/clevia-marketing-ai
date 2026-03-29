@@ -6,12 +6,12 @@ import requests
 ACCESS_TOKEN = os.getenv('IG_ACCESS_TOKEN')
 BUSINESS_ID = os.getenv('IG_BUSINESS_ID')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
 PRODUCTS_FILE = "products.json"
 COUNTER_FILE = "post_counter.txt"
-
 WAIT_MINUTES = 30
 
 def get_next_product(products):
@@ -62,26 +62,31 @@ Tulis hanya captionnya saja, tanpa penjelasan tambahan."""
     print(f"✅ Caption generated:\n{caption}\n")
     return caption
 
-def send_discord_preview(product, caption, image_url):
-    print("📨 Sending preview to Discord...")
-    message = {
-        "content": f"🔔 *CLEVIA AUTO POST – PREVIEW\n\n⏳ Post akan otomatis tayang dalam *{WAIT_MINUTES} menit**.\n❌ Batalkan workflow di GitHub Actions jika tidak ingin dipost.",
-        "embeds": [
-            {
-                "title": f"{product['name']} – {product['variant']} ({product['size']})",
-                "description": f"💰 *Harga:* {product['price']}\n\n📝 *Caption:*\n{caption}",
-                "image": {
-                    "url": image_url
-                },
-                "color": 3447003
-            }
-        ]
-    }
-    r = requests.post(DISCORD_WEBHOOK_URL, json=message)
-    if r.status_code in [200, 204]:
-        print("✅ Preview terkirim ke Discord!")
+def send_telegram_preview(product, caption, image_url):
+    print("📨 Sending preview to Telegram...")
+    text = f"""🔔 CLEVIA AUTO POST – PREVIEW
+
+📦 Produk: {product['name']} – {product['variant']} ({product['size']})
+💰 Harga: {product['price']}
+
+📝 Caption:
+{caption}
+
+⏳ Post akan otomatis tayang dalam {WAIT_MINUTES} menit.
+❌ Batalkan di GitHub Actions jika tidak ingin dipost."""
+
+    r = requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
+        data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "caption": text,
+            "photo": image_url
+        }
+    )
+    if r.status_code == 200:
+        print("✅ Preview terkirim ke Telegram!")
     else:
-        print(f"❌ Discord error: {r.status_code}")
+        print(f"❌ Telegram error: {r.status_code} | {r.json()}")
 
 def post_to_ig(image_url, caption):
     print("📤 Uploading media to Instagram...")
@@ -105,7 +110,7 @@ def post_to_ig(image_url, caption):
     else:
         print("❌ Publish gagal.")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     with open(PRODUCTS_FILE, "r") as f:
         products = json.load(f)
 
@@ -120,7 +125,7 @@ if __name__ == "__main__":
         print("❌ Caption gagal, post dibatalkan.")
         exit(1)
 
-    send_discord_preview(product, caption, image_url)
+    send_telegram_preview(product, caption, image_url)
 
     print(f"⏳ Menunggu {WAIT_MINUTES} menit sebelum posting...")
     time.sleep(WAIT_MINUTES * 60)
