@@ -110,7 +110,7 @@ def post_to_ig(image_url, caption):
     else:
         print("❌ Publish gagal.")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     with open(PRODUCTS_FILE, "r") as f:
         products = json.load(f)
 
