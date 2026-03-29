@@ -1,66 +1,50 @@
 [
   {
-    "name": "Sabun Laundry Cair Premium Clevia",
+    "name": "Sabun Laundry Cair Premium",
     "variant": "Fresh Bloom",
     "size": "1 Liter",
     "price": "Rp 25.900",
-    "highlights": "Deep Clean Technology, ampuh rontokkan daki dan noda kerah, Hard Water Friendly, busa melimpah",
-    "image": "Premium Liquid Detergent Fresh Bloom Part 1.png"
+    "highlights": "Menggunakan Deep Clean Technology ampuh rontokkan noda daki membandel di kerah, busa melimpah, dan wangi tahan lama.",
+    "image": "Premium_LiquidDetergent_FreshBloom.png"
   },
   {
-    "name": "Parfum Laundry Premium Clevia",
-    "variant": "Sakura Clean",
-    "size": "500 ml",
-    "price": "Rp 37.900",
-    "highlights": "Wangi sakura tahan lama 6-8 jam, tidak menusuk, cocok untuk semua jenis kain, bisa untuk sofa dan gorden",
-    "image": "Fabric Scent Sakura Multi USP.jpeg"
-  },
-  {
-    "name": "Karbol Premium Clevia",
-    "variant": "Pine Fresh",
-    "size": "500 ml",
-    "price": "Rp 23.900",
-    "highlights": "Efektif bersihkan toilet dan kamar mandi, netralkan bau pesing, aroma pine segar premium",
-    "image": "Premium Carbol Pine Fresh.png"
-  },
-  {
-    "name": "Cuci Piring Premium Clevia",
-    "variant": "Fresh Citrus",
-    "size": "450 ml",
-    "price": "Rp 9.900",
-    "highlights": "Angkat minyak dan lemak cepat, busa stabil tahan lama, aroma citrus segar, nyaman di tangan",
-    "image": "Premium Dishwasher Fresh Lime.png"
-  },
-  {
-    "name": "Pembersih Lantai Premium Clevia",
-    "variant": "Clean Fresh",
-    "size": "500 ml",
-    "price": "Rp 11.900",
-    "highlights": "Formula cepat kering, lantai tidak lengket, aroma floral segar",
-    "image": "Premium Floor Cleaner Clean Fresh.png"
-  },
-  {
-    "name": "Pembersih Lantai Premium Clevia",
-    "variant": "Lemon Scent",
-    "size": "500 ml",
-    "price": "Rp 11.900",
-    "highlights": "Aroma lemon tajam segar, lantai kilap, formula cepat kering, hilangkan bau apek seketika",
-    "image": "Premium Floor Cleaner Lemon Scent White p..."
-  },
-  {
-    "name": "Pembersih Lantai Premium Clevia",
-    "variant": "Violet Bloom Scent",
-    "size": "500 ml",
-    "price": "Rp 11.900",
-    "highlights": "Aroma lavender lembut, lantai kilap bersih, fast drying formula",
-    "image": "Premium Floor Cleaner Violet Bloom Scent W..."
-  },
-  {
-    "name": "Lemongrass Table Spray Premium Clevia",
-    "variant": "Sereh Natural",
+    "name": "Pembersih Meja / Table Spray",
+    "variant": "Lemongrass",
     "size": "250 ml",
     "price": "Rp 19.900",
-    "highlights": "Bersihkan permukaan meja seketika, usir nyamuk dan serangga secara alami, aroma sereh segar",
-    "image": "Premium Lemongrass Table Spray.png"
+    "highlights": "Meja langsung kinclong, formula tidak lengket, dan aroma sereh natural efektif mengusir serangga dan nyamuk.",
+    "image": "Premium_Lemongrass_Table_Spray.png"
+  },
+  {
+    "name": "Karbol Premium",
+    "variant": "Pine Fresh",
+    "size": "500 ml",
+    "price": "Rp 15.900",
+    "highlights": "Solusi ampuh hajar bau pesing toilet, wangi cemara/pine yang segar tahan lama, dan efektif membasmi kuman.",
+    "image": "Premium_Carbol_PineFresh.png"
+  },
+  {
+    "name": "Sabun Cuci Piring Premium",
+    "variant": "Fresh Lime",
+    "size": "500 ml",
+    "price": "Rp 14.900",
+    "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel pada piring dan wajan dengan cepat, serta lembut di tangan.",
+    "image": "Premium_Dishwasher_FreshLime.png"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "Lemon Scent",
+    "size": "1 Liter",
+    "price": "Rp 17.900",
+    "highlights": "Membuat lantai bersih kesat, tidak meninggalkan lengket di kaki, dengan keharuman lemon segar yang mencerahkan ruangan.",
+    "image": "Premium_FloorCleaner_LemonScent.png"
+  },
+  {
+    "name": "Pelicin & Pewangi Pakaian",
+    "variant": "Sakura",
+    "size": "250 ml",
+    "price": "Rp 18.900",
+    "highlights": "Keharuman bunga sakura khas Jepang yang elegan, anti apek, dan membuat pakaian mudah disetrika serta wangi seharian.",
+    "image": "Premium_FabricScent_Sakura.jpeg"
   }
 ]
