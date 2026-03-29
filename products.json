@@ -5,7 +5,7 @@
     "size": "450 ml",
     "price": "Rp 9.900",
     "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel pada piring dan wajan dengan cepat, serta lembut di tangan.",
-    "image": ".github/workflows/Premium_Dishwasher_FreshLime.png"
+    "image": "Premium_Dishwasher_FreshLime.png"
   },
   {
     "name": "Pembersih Meja / Table Spray",
@@ -13,7 +13,7 @@
     "size": "250 ml",
     "price": "Rp 19.900",
     "highlights": "Meja langsung kinclong, formula tidak lengket, dan aroma sereh natural efektif mengusir serangga dan nyamuk.",
-    "image": ".github/workflows/Premium_Lemongrass_Table_Spray.png"
+    "image": "Premium_Lemongrass_Table_Spray.png"
   },
   {
     "name": "Karbol Premium",
@@ -21,7 +21,7 @@
     "size": "500 ml",
     "price": "Rp 23.900",
     "highlights": "Solusi ampuh hajar bau pesing toilet, wangi cemara/pine yang segar tahan lama, dan efektif membasmi kuman.",
-    "image": ".github/workflows/Premium_Carbol_PineFresh.png"
+    "image": "Premium_Carbol_PineFresh.png"
   },
   {
     "name": "Pelicin & Pewangi Pakaian",
@@ -29,7 +29,7 @@
     "size": "500 ml",
     "price": "Rp 37.900",
     "highlights": "Keharuman bunga sakura khas Jepang yang elegan, anti apek, dan membuat pakaian mudah disetrika serta wangi seharian.",
-    "image": ".github/workflows/Premium_FabricScent_Sakura.jpeg"
+    "image": "Premium_FabricScent_Sakura.jpeg"
   },
   {
     "name": "Sabun Laundry Cair Premium",
@@ -37,7 +37,7 @@
     "size": "1 Liter",
     "price": "Rp 25.900",
     "highlights": "Menggunakan Deep Clean Technology ampuh rontokkan noda daki membandel di kerah, busa melimpah, dan wangi tahan lama.",
-    "image": ".github/workflows/Premium_LiquidDetergent_FreshBloom.png"
+    "image": "Premium_LiquidDetergent_FreshBloom.png"
   },
   {
     "name": "Pembersih Lantai Premium",
@@ -45,6 +45,6 @@
     "size": "500 ml",
     "price": "Rp 11.900",
     "highlights": "Membuat lantai bersih kesat, tidak meninggalkan lengket di kaki, dengan keharuman lemon segar yang mencerahkan ruangan.",
-    "image": ".github/workflows/Premium_FloorCleaner_LemonScent.png"
+    "image": "Premium_FloorCleaner_LemonScent.png"
   }
 ]
