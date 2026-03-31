@@ -111,8 +111,11 @@ def post_to_ig(image_url, caption):
         timeout=30
     )
     
+    response_json = r.json()
+    print(f"📋 Full response Step 1: {response_json}")
+
     if r.status_code != 200:
-        err = r.json().get('error', {}).get('message', 'Unknown Error')
+        err = response_json.get('error', {}).get('message', 'Unknown Error')
         print(f"❌ Upload gagal: {err}")
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -121,7 +124,17 @@ def post_to_ig(image_url, caption):
         )
         return
 
-    creation_id = r.json().get('id')
+    creation_id = response_json.get('id')
+    
+    if not creation_id:
+        print(f"❌ Container ID None! Response: {response_json}")
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
+            timeout=10
+        )
+        return
+
     print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
     time.sleep(5)
 
@@ -132,6 +145,9 @@ def post_to_ig(image_url, caption):
         timeout=30
     )
     
+    response_pub = r_pub.json()
+    print(f"📋 Full response Step 2: {response_pub}")
+
     if r_pub.status_code == 200:
         print("✅ Post berhasil!")
         requests.post(
@@ -140,7 +156,7 @@ def post_to_ig(image_url, caption):
             timeout=10
         )
     else:
-        err = r_pub.json().get('error', {}).get('message', 'Publish Failed')
+        err = response_pub.get('error', {}).get('message', 'Publish Failed')
         print(f"❌ Publish gagal: {err}")
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -157,6 +173,8 @@ if __name__ == "__main__":
 
     raw_img = product['image']
     image_url = clean_gdrive_link(raw_img) if raw_img.startswith("http") else REPO_BASE_URL + requests.utils.quote(raw_img)
+
+    print(f"🖼️ Image URL: {image_url}")
 
     caption = generate_caption(product)
     if not caption:
