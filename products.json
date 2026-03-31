@@ -4,47 +4,111 @@
     "variant": "Fresh Lime",
     "size": "450 ml",
     "price": "Rp 9.900",
-    "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel pada piring dan wajan dengan cepat, serta lembut di tangan.",
-    "image": "Premium_Dishwasher_FreshLime.png"
-  },
-  {
-    "name": "Pembersih Meja / Table Spray",
-    "variant": "Lemongrass",
-    "size": "250 ml",
-    "price": "Rp 19.900",
-    "highlights": "Meja langsung kinclong, formula tidak lengket, dan aroma sereh natural efektif mengusir serangga dan nyamuk.",
-    "image": "Premium_Lemongrass_Table_Spray.png"
+    "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel cepat, lembut di tangan",
+    "image": "Premium_WhiteBGSingle_Dishwasher_FreshLime.png"
   },
   {
     "name": "Karbol Premium",
     "variant": "Pine Fresh",
     "size": "500 ml",
     "price": "Rp 23.900",
-    "highlights": "Solusi ampuh hajar bau pesing toilet, wangi cemara/pine yang segar tahan lama, dan efektif membasmi kuman.",
-    "image": "Premium_Carbol_PineFresh.png"
+    "highlights": "Ampuh hajar bau pesing toilet, wangi pine segar tahan lama, efektif basmi kuman",
+    "image": "Premium_WhiteBGSingle_Carbol_PineFresh.png"
   },
   {
-    "name": "Pelicin & Pewangi Pakaian",
+    "name": "Pelicin dan Pewangi Pakaian",
     "variant": "Sakura",
     "size": "500 ml",
     "price": "Rp 37.900",
-    "highlights": "Keharuman bunga sakura khas Jepang yang elegan, anti apek, dan membuat pakaian mudah disetrika serta wangi seharian.",
-    "image": "Premium_FabricScent_Sakura.jpeg"
+    "highlights": "Keharuman sakura khas Jepang yang elegan, anti apek, pakaian mudah disetrika dan wangi seharian",
+    "image": "Premium_WhiteBGSingle_FabricScent_Sakura.jpeg"
   },
   {
     "name": "Sabun Laundry Cair Premium",
     "variant": "Fresh Bloom",
     "size": "1 Liter",
     "price": "Rp 25.900",
-    "highlights": "Menggunakan Deep Clean Technology ampuh rontokkan noda daki membandel di kerah, busa melimpah, dan wangi tahan lama.",
-    "image": "Premium_LiquidDetergent_FreshBloom.png"
+    "highlights": "Deep Clean Technology ampuh rontokkan noda daki di kerah, busa melimpah, wangi tahan lama",
+    "image": "Premium_WhiteBGSingle_LiquidDetergent_FreshBloom.png"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "Clean Fresh",
+    "size": "500 ml",
+    "price": "Rp 11.900",
+    "highlights": "Lantai bersih kesat tidak lengket, aroma floral segar, formula cepat kering",
+    "image": "Premium_WhiteBGSingle_FloorCleaner_CleanFresh.png"
   },
   {
     "name": "Pembersih Lantai Premium",
     "variant": "Lemon Scent",
     "size": "500 ml",
     "price": "Rp 11.900",
-    "highlights": "Membuat lantai bersih kesat, tidak meninggalkan lengket di kaki, dengan keharuman lemon segar yang mencerahkan ruangan.",
-    "image": "Premium_FloorCleaner_LemonScent.png"
+    "highlights": "Lantai bersih kesat, aroma lemon segar mencerahkan ruangan, tidak meninggalkan lengket",
+    "image": "Premium_WhiteBGSingle_FloorCleaner_LemonScent.png"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "Violet Bloom Scent",
+    "size": "500 ml",
+    "price": "Rp 11.900",
+    "highlights": "Lantai bersih dan wangi bunga violet lembut, formula cepat kering, cocok semua jenis lantai",
+    "image": "Premium_WhiteBGSingle_FloorCleaner_VioletBloomScent.png"
+  },
+  {
+    "name": "Pembersih Meja Table Spray",
+    "variant": "Lemongrass",
+    "size": "250 ml",
+    "price": "Rp 19.900",
+    "highlights": "Meja langsung kinclong, formula tidak lengket, aroma sereh natural usir nyamuk dan serangga",
+    "image": "Premium_WhiteBGSingle_Lemongrass_Table_Spray.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Lemongrass",
+    "size": "450ml + 250ml",
+    "price": "Rp 26.820",
+    "highlights": "Paket hemat cuci piring dan bersih meja sekaligus, solusi lengkap dapur bersih dan wangi",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+ Lemongrass_Table_Spray.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Karbol Pine Fresh",
+    "size": "450ml + 500ml",
+    "price": "Rp 30.420",
+    "highlights": "Paket dapur dan toilet bersih sekaligus, hemat lebih dari beli satuan",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_Carbol_PineFresh.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Floor Cleaner Clean Fresh",
+    "size": "450ml + 500ml",
+    "price": "Rp 19.620",
+    "highlights": "Paket dapur dan lantai bersih sekaligus, hemat lebih dari beli satuan",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_FloorCleaner_CleanFresh.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Floor Cleaner Lemon Scent",
+    "size": "450ml + 500ml",
+    "price": "Rp 19.620",
+    "highlights": "Paket dapur dan lantai bersih sekaligus dengan aroma lemon segar",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_FloorCleaner_LemonScent.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Floor Cleaner Violet Bloom",
+    "size": "450ml + 500ml",
+    "price": "Rp 19.620",
+    "highlights": "Paket dapur dan lantai bersih sekaligus dengan aroma violet bloom yang lembut",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_FloorCleaner_VioletBloomScent.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Dishwasher + Liquid Detergent",
+    "size": "450ml + 1L",
+    "price": "Rp 32.220",
+    "highlights": "Paket lengkap cuci piring dan cuci baju, bersih maksimal dari dapur sampai laundry",
+    "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_LiquidDetergent_FreshBloom.png"
   }
 ]
