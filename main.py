@@ -48,30 +48,22 @@ def get_next_product(products):
     posted, sha = get_posted_indices()
     total = len(products)
 
-    # Cek semua sudah dipost
     if len(posted) >= total:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
             data={"chat_id": TELEGRAM_CHAT_ID, "text": "🛑 Semua konten sudah diposting! Tambah produk baru di products.json"},
             timeout=10
         )
-        return None, None, None
+        return None, None, None, None
 
-    # Cari index yang belum dipost
     next_index = None
     for i in range(total):
         if i not in posted:
             next_index = i
             break
 
-    product = products[next_index]
+    remaining = total - len(posted) - 1
 
-    # Simpan index yang baru dipost
-    posted.append(next_index)
-    save_posted_indices(posted, sha)
-
-    # Warning kalau sisa tinggal 3
-    remaining = total - len(posted)
     if remaining <= 3:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -79,14 +71,14 @@ def get_next_product(products):
             timeout=10
         )
 
-    return product, next_index, remaining
+    return products[next_index], next_index, posted, sha
 
 def generate_caption(product):
     print("🤖 Generating caption with Groq...")
     if product.get('type') == 'lifestyle':
         prompt_detail = f"Tema: {product['name']}. Buat caption estetik tentang rumah bersih tanpa sebut nama produk."
     else:
-        prompt_detail = f"Produk: {product['name']} - {product['variant']}. Harga: {product['price']}. Keunggulan: {product['highlights']}"
+        prompt_detail = f"Produk: {product['name']} - {product['variant']}. Harga: {product.get('price', '')}. Keunggulan: {product.get('highlights', '')}"
 
     prompt = f"""Kamu adalah copywriter Instagram Clevia. Tone: Profesional & Ramah.
 {prompt_detail}
@@ -195,7 +187,7 @@ def post_to_ig(image_url, caption):
             data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL UPLOAD: {err}"},
             timeout=10
         )
-        return
+        return False
 
     creation_id = response_json.get('id')
     if not creation_id:
@@ -205,7 +197,7 @@ def post_to_ig(image_url, caption):
             data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
             timeout=10
         )
-        return
+        return False
 
     print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
     time.sleep(5)
@@ -227,6 +219,7 @@ def post_to_ig(image_url, caption):
             data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ SUCCESS! Konten Clevia sudah LIVE di Instagram!"},
             timeout=10
         )
+        return True
     else:
         err = response_pub.get('error', {}).get('message', 'Publish Failed')
         print(f"❌ Publish gagal: {err}")
@@ -235,12 +228,13 @@ def post_to_ig(image_url, caption):
             data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL PUBLISH: {err}"},
             timeout=10
         )
+        return False
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     with open(PRODUCTS_FILE, "r") as f:
         products = json.load(f)
 
-    product, index, remaining = get_next_product(products)
+    product, next_index, posted, sha = get_next_product(products)
     if not product:
         exit(0)
 
@@ -263,12 +257,18 @@ if __name__ == "__main__":
     action = wait_for_approval(msg_id)
 
     if action == "approve":
-        post_to_ig(image_url, caption)
+        success = post_to_ig(image_url, caption)
+        if success:
+            posted.append(next_index)
+            save_posted_indices(posted, sha)
     elif action == "revise":
         new_caption = ask_for_revised_caption(msg_id)
         if new_caption:
             print(f"✏️ Caption baru: {new_caption}")
-            post_to_ig(image_url, new_caption)
+            success = post_to_ig(image_url, new_caption)
+            if success:
+                posted.append(next_index)
+                save_posted_indices(posted, sha)
         else:
             requests.post(
                 f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
@@ -279,6 +279,6 @@ if __name__ == "__main__":
         print("❌ Ditolak atau timeout.")
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": "⏰ Post dibatalkan (timeout/reject)."},
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": "⏰ Post dibatalkan (timeout/reject). Konten ini akan dipost di jadwal berikutnya."},
             timeout=10
         )
