@@ -40,28 +40,33 @@
     "image": "Premium_WhiteBGSingle_FloorCleaner_CleanFresh.png"
   },
   {
-    "name": "Pembersih Lantai Premium",
-    "variant": "Lemon Scent",
-    "size": "500 ml",
-    "price": "Rp 11.900",
-    "highlights": "Lantai bersih kesat, aroma lemon segar mencerahkan ruangan, tidak meninggalkan lengket",
-    "image": "Premium_WhiteBGSingle_FloorCleaner_LemonScent.png"
-  },
-  {
-    "name": "Pembersih Lantai Premium",
-    "variant": "Violet Bloom Scent",
-    "size": "500 ml",
-    "price": "Rp 11.900",
-    "highlights": "Lantai bersih dan wangi bunga violet lembut, formula cepat kering, cocok semua jenis lantai",
-    "image": "Premium_WhiteBGSingle_FloorCleaner_VioletBloomScent.png"
-  },
-  {
     "name": "Pembersih Meja Table Spray",
     "variant": "Lemongrass",
     "size": "250 ml",
     "price": "Rp 19.900",
     "highlights": "Meja langsung kinclong, formula tidak lengket, aroma sereh natural usir nyamuk dan serangga",
     "image": "Premium_WhiteBGSingle_Lemongrass_Table_Spray.png"
+  },
+  {
+    "name": "Clevia Premium Collection",
+    "variant": "Blue Series 1",
+    "type": "lifestyle",
+    "highlights": "Produk premium kebersihan rumah tangga dari Clevia",
+    "image": "Blue_Clevia_Premium_1.jpeg"
+  },
+  {
+    "name": "Clevia Premium Collection",
+    "variant": "Blue Series 2",
+    "type": "lifestyle",
+    "highlights": "Produk premium kebersihan rumah tangga dari Clevia",
+    "image": "Blue_Clevia_Premium_2.jpeg"
+  },
+  {
+    "name": "Clevia Premium Collection",
+    "variant": "Blue Series 3",
+    "type": "lifestyle",
+    "highlights": "Produk premium kebersihan rumah tangga dari Clevia",
+    "image": "Blue_Clevia_Premium_3.jpeg"
   },
   {
     "name": "Bundle Hemat",
@@ -110,5 +115,132 @@
     "price": "Rp 32.220",
     "highlights": "Paket lengkap cuci piring dan cuci baju, bersih maksimal dari dapur sampai laundry",
     "image": "Premium_WhiteBG_Dishwasher_FreshLime+Premium_LiquidDetergent_FreshBloom.png"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "3 Varian Aroma",
+    "size": "500 ml",
+    "price": "Rp 11.900",
+    "highlights": "Tersedia 3 varian aroma segar, lantai bersih kesat, formula cepat kering, cocok semua jenis lantai",
+    "image": "Premium_FloorCleaner_Trio_WhiteBG.png"
+  },
+  {
+    "name": "Karbol Premium",
+    "variant": "Pine Fresh - Lifestyle",
+    "type": "lifestyle",
+    "highlights": "Ampuh hajar bau pesing toilet, wangi pine segar tahan lama",
+    "image": "Premium_Carbol_PineFresh_with_background.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Lemongrass + Karbol Pine Fresh",
+    "size": "250ml + 500ml",
+    "price": "Rp 43.800",
+    "highlights": "Paket bersih meja dan toilet sekaligus, aroma segar sereh dan pine",
+    "image": "Premium_Lemongrass_Table_Spray+Premium_Carbol_PineFresh.png"
+  },
+  {
+    "name": "Bundle Hemat",
+    "variant": "Lemongrass + Fabric Scent Sakura",
+    "size": "250ml + 500ml",
+    "price": "Rp 57.800",
+    "highlights": "Paket meja bersih dan pakaian wangi sakura",
+    "image": "Premium_Lemongrass_Table_Spray+Premium_FabricScent_Sakura.png"
+  },
+  {
+    "name": "Sabun Cuci Piring Premium",
+    "variant": "Fresh Lime - Detail 1",
+    "size": "450 ml",
+    "price": "Rp 9.900",
+    "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel cepat, lembut di tangan",
+    "image": "Premium_Dishwasher_FreshLime_Part1_Square.png"
+  },
+  {
+    "name": "Sabun Cuci Piring Premium",
+    "variant": "Fresh Lime - Detail 2",
+    "size": "450 ml",
+    "price": "Rp 9.900",
+    "highlights": "Ekstrak jeruk nipis asli, angkat lemak membandel cepat, lembut di tangan",
+    "image": "Premium_Dishwasher_FreshLime_Part2_Rectangle_Horizontal.png"
+  },
+  {
+    "name": "Pelicin dan Pewangi Pakaian",
+    "variant": "Sakura - Detail 1",
+    "size": "500 ml",
+    "price": "Rp 37.900",
+    "highlights": "Keharuman sakura khas Jepang yang elegan, anti apek, wangi seharian",
+    "image": "Premium_FabricScent_Sakura_Multi_Part1.png"
+  },
+  {
+    "name": "Pelicin dan Pewangi Pakaian",
+    "variant": "Sakura - Detail 2",
+    "size": "500 ml",
+    "price": "Rp 37.900",
+    "highlights": "Keharuman sakura khas Jepang yang elegan, anti apek, wangi seharian",
+    "image": "Premium_FabricScent_Sakura_Multi_Part2.png"
+  },
+  {
+    "name": "Pelicin dan Pewangi Pakaian",
+    "variant": "Sakura - Detail 3",
+    "size": "500 ml",
+    "price": "Rp 37.900",
+    "highlights": "Keharuman sakura khas Jepang yang elegan, anti apek, wangi seharian",
+    "image": "Premium_FabricScent_Sakura_Multi_Part3.png"
+  },
+  {
+    "name": "Pelicin dan Pewangi Pakaian",
+    "variant": "Sakura - USP",
+    "size": "500 ml",
+    "price": "Rp 37.900",
+    "highlights": "Keharuman sakura khas Jepang yang elegan, anti apek, wangi seharian",
+    "image": "Premium_FabricScent_Sakura_Multi_USP.jpeg"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "Clean Fresh - Detail 1",
+    "size": "500 ml",
+    "price": "Rp 11.900",
+    "highlights": "Lantai bersih kesat tidak lengket, aroma floral segar, formula cepat kering",
+    "image": "Premium_FloorCleaner_CleanFresh_part1.png"
+  },
+  {
+    "name": "Pembersih Lantai Premium",
+    "variant": "Clean Fresh - Detail 2",
+    "size": "500 ml",
+    "price": "Rp 11.900",
+    "highlights": "Lantai bersih kesat tidak lengket, aroma floral segar, formula cepat kering",
+    "image": "Premium_FloorCleaner_CleanFresh_part2.png"
+  },
+  {
+    "name": "Pembersih Meja Table Spray",
+    "variant": "Lemongrass - Detail",
+    "size": "250 ml",
+    "price": "Rp 19.900",
+    "highlights": "Meja langsung kinclong, formula tidak lengket, aroma sereh natural",
+    "image": "Premium_Lemongrass_Table_Spray_Part1.png"
+  },
+  {
+    "name": "Pembersih Meja Table Spray",
+    "variant": "Lemongrass - USP",
+    "size": "250 ml",
+    "price": "Rp 19.900",
+    "highlights": "Meja langsung kinclong, formula tidak lengket, aroma sereh natural",
+    "image": "Premium_Lemongrass_Table_Spray_USP.jpeg"
+  },
+  {
+    "name": "Sabun Laundry Cair Premium",
+    "variant": "Fresh Bloom - Detail",
+    "size": "1 Liter",
+    "price": "Rp 25.900",
+    "highlights": "Deep Clean Technology ampuh rontokkan noda daki di kerah, busa melimpah, wangi tahan lama",
+    "image": "Premium_LiquidDetergent_FreshBloom_Part1.png"
+  },
+  {
+    "name": "Pel Lantai Premium",
+    "variant": "Floor Mop",
+    "size": "",
+    "price": "",
+    "highlights": "Pel lantai premium Clevia, bersih maksimal, ergonomis dan mudah digunakan",
+    "image": "Premium_Floor_Mop.png"
   }
 ]
