@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+import base64
 
 # --- CONFIGURATION ---
 ACCESS_TOKEN = os.getenv('IG_ACCESS_TOKEN')
@@ -9,33 +10,76 @@ BUSINESS_ID = os.getenv('IG_BUSINESS_ID')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_REPO = "CleviaHub/clevia-marketing-ai"
 
 REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
 PRODUCTS_FILE = "products.json"
-COUNTER_FILE = "post_counter.txt"
+POSTED_FILE = "posted_indices.json"
 APPROVAL_TIMEOUT = 1800
 
-def get_next_product(products):
-    try:
-        with open(COUNTER_FILE, "r") as f:
-            index = int(f.read().strip())
-    except:
-        index = 0
-    product = products[index % len(products)]
-    with open(COUNTER_FILE, "w") as f:
-        f.write(str((index + 1) % len(products)))
-    return product
+def github_get(filename):
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    r = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}", headers=headers)
+    if r.status_code == 200:
+        data = r.json()
+        content = base64.b64decode(data['content']).decode().strip()
+        return content, data['sha']
+    return None, None
 
-def clean_gdrive_link(url):
-    if "drive.google.com" in url:
-        file_id = ""
-        if "/file/d/" in url:
-            file_id = url.split("/file/d/")[1].split("/")[0]
-        elif "id=" in url:
-            file_id = url.split("id=")[1].split("&")[0]
-        if file_id:
-            return f"https://drive.google.com/uc?export=download&id={file_id}"
-    return url
+def github_put(filename, content, sha, message):
+    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Content-Type": "application/json"}
+    encoded = base64.b64encode(content.encode()).decode()
+    body = {"message": message, "content": encoded}
+    if sha:
+        body["sha"] = sha
+    requests.put(f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}", headers=headers, json=body)
+
+def get_posted_indices():
+    content, sha = github_get(POSTED_FILE)
+    if content:
+        return json.loads(content), sha
+    return [], None
+
+def save_posted_indices(indices, sha):
+    github_put(POSTED_FILE, json.dumps(indices), sha, f"Update posted indices")
+
+def get_next_product(products):
+    posted, sha = get_posted_indices()
+    total = len(products)
+
+    # Cek semua sudah dipost
+    if len(posted) >= total:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": "🛑 Semua konten sudah diposting! Tambah produk baru di products.json"},
+            timeout=10
+        )
+        return None, None, None
+
+    # Cari index yang belum dipost
+    next_index = None
+    for i in range(total):
+        if i not in posted:
+            next_index = i
+            break
+
+    product = products[next_index]
+
+    # Simpan index yang baru dipost
+    posted.append(next_index)
+    save_posted_indices(posted, sha)
+
+    # Warning kalau sisa tinggal 3
+    remaining = total - len(posted)
+    if remaining <= 3:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"⚠️ WARNING: Sisa konten tinggal {remaining} lagi! Segera tambah produk baru di products.json"},
+            timeout=10
+        )
+
+    return product, next_index, remaining
 
 def generate_caption(product):
     print("🤖 Generating caption with Groq...")
@@ -60,7 +104,11 @@ def send_telegram_preview(product, caption, image_url):
     display_name = product.get('name', 'Clevia Post')
     text = f"🔔 CLEVIA PREVIEW\n\n📦 {display_name}\n📝 Caption:\n{caption}\n\n👇 Approve?"
     
-    reply_markup = {"inline_keyboard": [[{"text": "✅ Approve & Post", "callback_data": "approve"}, {"text": "❌ Reject", "callback_data": "reject"}]]}
+    reply_markup = {"inline_keyboard": [[
+        {"text": "✅ Approve & Post", "callback_data": "approve"},
+        {"text": "✏️ Revisi", "callback_data": "revise"},
+        {"text": "❌ Reject", "callback_data": "reject"}
+    ]]}
     
     r = requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
@@ -68,6 +116,31 @@ def send_telegram_preview(product, caption, image_url):
         timeout=30
     )
     return r.json().get("result", {}).get("message_id") if r.status_code == 200 else None
+
+def ask_for_revised_caption(message_id):
+    requests.post(
+        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+        data={"chat_id": TELEGRAM_CHAT_ID, "text": "✏️ Kirim caption baru kamu sekarang:"},
+        timeout=10
+    )
+    start_time = time.time()
+    offset = None
+    while time.time() - start_time < APPROVAL_TIMEOUT:
+        try:
+            r = requests.get(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getUpdates",
+                params={"timeout": 10, "offset": offset},
+                timeout=20
+            )
+            updates = r.json().get("result", [])
+            for update in updates:
+                offset = update["update_id"] + 1
+                if "message" in update and "text" in update["message"]:
+                    return update["message"]["text"]
+        except:
+            pass
+        time.sleep(2)
+    return None
 
 def wait_for_approval(message_id):
     print("⏳ Menunggu klik di Telegram...")
@@ -97,11 +170,11 @@ def wait_for_approval(message_id):
                             data={"chat_id": TELEGRAM_CHAT_ID, "message_id": message_id, "reply_markup": json.dumps({"inline_keyboard": []})},
                             timeout=10
                         )
-                        return action == "approve"
+                        return action
         except:
             pass
         time.sleep(2)
-    return False
+    return "timeout"
 
 def post_to_ig(image_url, caption):
     print("📤 Step 1: Upload Container...")
@@ -125,7 +198,6 @@ def post_to_ig(image_url, caption):
         return
 
     creation_id = response_json.get('id')
-    
     if not creation_id:
         print(f"❌ Container ID None! Response: {response_json}")
         requests.post(
@@ -168,12 +240,14 @@ if __name__ == "__main__":
     with open(PRODUCTS_FILE, "r") as f:
         products = json.load(f)
 
-    product = get_next_product(products)
+    product, index, remaining = get_next_product(products)
+    if not product:
+        exit(0)
+
     print(f"📦 Produk: {product.get('name')} - {product.get('variant', '')}")
 
     raw_img = product['image']
-    image_url = clean_gdrive_link(raw_img) if raw_img.startswith("http") else REPO_BASE_URL + requests.utils.quote(raw_img)
-
+    image_url = raw_img if raw_img.startswith("http") else REPO_BASE_URL + requests.utils.quote(raw_img)
     print(f"🖼️ Image URL: {image_url}")
 
     caption = generate_caption(product)
@@ -186,8 +260,21 @@ if __name__ == "__main__":
         print("❌ Telegram preview gagal.")
         exit(1)
 
-    if wait_for_approval(msg_id):
+    action = wait_for_approval(msg_id)
+
+    if action == "approve":
         post_to_ig(image_url, caption)
+    elif action == "revise":
+        new_caption = ask_for_revised_caption(msg_id)
+        if new_caption:
+            print(f"✏️ Caption baru: {new_caption}")
+            post_to_ig(image_url, new_caption)
+        else:
+            requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                data={"chat_id": TELEGRAM_CHAT_ID, "text": "⏰ Timeout nunggu revisi caption."},
+                timeout=10
+            )
     else:
         print("❌ Ditolak atau timeout.")
         requests.post(
