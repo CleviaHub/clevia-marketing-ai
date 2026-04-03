@@ -1,4 +1,28 @@
-import os
+[22.57, 3/4/2026] Ari: import os
+import json
+import time
+import requests
+import base64
+
+# --- CONFIGURATION ---
+ACCESS_TOKEN = os.getenv('IG_ACCESS_TOKEN')
+BUSINESS_ID = os.getenv('IG_BUSINESS_ID')
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_REPO = "CleviaHub/clevia-marketing-ai"
+
+REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
+PRODUCTS_FILE = "products.json"
+POSTED_FILE = "posted_indices.json"
+APPROVAL_TIMEOUT = 1800
+
+def github_get(filename):
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    r = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}", headers=he…
+[23.02, 3/4/2026] Ari: Update main.py
+[23.02, 3/4/2026] Ari: import os
 import json
 import time
 import requests
@@ -168,67 +192,87 @@ def wait_for_approval(message_id):
         time.sleep(2)
     return "timeout"
 
-def post_to_ig(image_url, caption):
-    print("📤 Step 1: Upload Container...")
-    r = requests.post(
-        f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media",
-        data={'image_url': image_url, 'caption': caption, 'access_token': ACCESS_TOKEN},
-        timeout=30
-    )
-    
-    response_json = r.json()
-    print(f"📋 Full response Step 1: {response_json}")
-
-    if r.status_code != 200:
-        err = response_json.get('error', {}).get('message', 'Unknown Error')
-        print(f"❌ Upload gagal: {err}")
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL UPLOAD: {err}"},
-            timeout=10
+def post_to_ig(image_url, caption, max_retries=3, retry_delay=20):
+    for attempt in range(1, max_retries + 1):
+        print(f"📤 Step 1: Upload Container... (attempt {attempt}/{max_retries})")
+        r = requests.post(
+            f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media",
+            data={'image_url': image_url, 'caption': caption, 'access_token': ACCESS_TOKEN},
+            timeout=30
         )
-        return False
 
-    creation_id = response_json.get('id')
-    if not creation_id:
-        print(f"❌ Container ID None! Response: {response_json}")
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
-            timeout=10
+        response_json = r.json()
+        print(f"📋 Full response Step 1: {response_json}")
+
+        # Cek error di step 1
+        if r.status_code != 200 or 'error' in response_json:
+            error = response_json.get('error', {})
+            err_msg = error.get('message', 'Unknown Error')
+            is_transient = error.get('is_transient', False)
+
+            if is_transient and attempt < max_retries:
+                print(f"⚠️ Transient error, retry dalam {retry_delay} detik... ({attempt}/{max_retries})")
+                time.sleep(retry_delay)
+                continue
+            else:
+                print(f"❌ Upload gagal: {err_msg}")
+                requests.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                    data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL UPLOAD (attempt {attempt}): {err_msg}"},
+                    timeout=10
+                )
+                return False
+
+        creation_id = response_json.get('id')
+        if not creation_id:
+            print(f"❌ Container ID None! Response: {response_json}")
+            requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
+                timeout=10
+            )
+            return False
+
+        print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
+        time.sleep(5)
+
+        print("🚀 Step 2: Publishing...")
+        r_pub = requests.post(
+            f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media_publish",
+            data={'creation_id': creation_id, 'access_token': ACCESS_TOKEN},
+            timeout=30
         )
-        return False
 
-    print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
-    time.sleep(5)
+        response_pub = r_pub.json()
+        print(f"📋 Full response Step 2: {response_pub}")
 
-    print("🚀 Step 2: Publishing...")
-    r_pub = requests.post(
-        f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media_publish",
-        data={'creation_id': creation_id, 'access_token': ACCESS_TOKEN},
-        timeout=30
-    )
-    
-    response_pub = r_pub.json()
-    print(f"📋 Full response Step 2: {response_pub}")
+        if r_pub.status_code == 200:
+            print("✅ Post berhasil!")
+            requests.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ SUCCESS! Konten Clevia sudah LIVE di Instagram!"},
+                timeout=10
+            )
+            return True
+        else:
+            error_pub = response_pub.get('error', {})
+            err_msg = error_pub.get('message', 'Publish Failed')
+            is_transient = error_pub.get('is_transient', False)
 
-    if r_pub.status_code == 200:
-        print("✅ Post berhasil!")
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ SUCCESS! Konten Clevia sudah LIVE di Instagram!"},
-            timeout=10
-        )
-        return True
-    else:
-        err = response_pub.get('error', {}).get('message', 'Publish Failed')
-        print(f"❌ Publish gagal: {err}")
-        requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL PUBLISH: {err}"},
-            timeout=10
-        )
-        return False
+            if is_transient and attempt < max_retries:
+                print(f"⚠️ Transient error di publish, retry dalam {retry_delay} detik... ({attempt}/{max_retries})")
+                time.sleep(retry_delay)
+                continue
+            else:
+                print(f"❌ Publish gagal: {err_msg}")
+                requests.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                    data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL PUBLISH (attempt {attempt}): {err_msg}"},
+                    timeout=10
+                )
+                return False
+
+    return False
 
 if __name__ == "__main__":
     with open(PRODUCTS_FILE, "r") as f:
