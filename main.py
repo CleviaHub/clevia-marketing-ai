@@ -20,30 +20,6 @@ APPROVAL_TIMEOUT = 1800
 
 def github_get(filename):
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
-    r = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}", headers=he…
-[23.02, 3/4/2026] Ari: Update main.py
-[23.02, 3/4/2026] Ari: import os
-import json
-import time
-import requests
-import base64
-
-# --- CONFIGURATION ---
-ACCESS_TOKEN = os.getenv('IG_ACCESS_TOKEN')
-BUSINESS_ID = os.getenv('IG_BUSINESS_ID')
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
-GITHUB_REPO = "CleviaHub/clevia-marketing-ai"
-
-REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
-PRODUCTS_FILE = "products.json"
-POSTED_FILE = "posted_indices.json"
-APPROVAL_TIMEOUT = 1800
-
-def github_get(filename):
-    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     r = requests.get(f"https://api.github.com/repos/{GITHUB_REPO}/contents/{filename}", headers=headers)
     if r.status_code == 200:
         data = r.json()
