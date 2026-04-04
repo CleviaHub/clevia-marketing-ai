@@ -12,6 +12,7 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 GITHUB_REPO = "CleviaHub/clevia-marketing-ai"
+FB_PAGE_ID = "998209030050135"
 
 REPO_BASE_URL = "https://raw.githubusercontent.com/CleviaHub/clevia-marketing-ai/main/"
 PRODUCTS_FILE = "products.json"
@@ -42,7 +43,7 @@ def get_posted_indices():
     return [], None
 
 def save_posted_indices(indices, sha):
-    github_put(POSTED_FILE, json.dumps(indices), sha, f"Update posted indices")
+    github_put(POSTED_FILE, json.dumps(indices), sha, "Update posted indices")
 
 def get_next_product(products):
     posted, sha = get_posted_indices()
@@ -168,87 +169,115 @@ def wait_for_approval(message_id):
         time.sleep(2)
     return "timeout"
 
-def post_to_ig(image_url, caption, max_retries=3, retry_delay=20):
-    for attempt in range(1, max_retries + 1):
-        print(f"📤 Step 1: Upload Container... (attempt {attempt}/{max_retries})")
-        r = requests.post(
-            f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media",
-            data={'image_url': image_url, 'caption': caption, 'access_token': ACCESS_TOKEN},
-            timeout=30
+def post_to_ig(image_url, caption):
+    print("📤 Step 1: Upload Container IG...")
+    r = requests.post(
+        f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media",
+        data={'image_url': image_url, 'caption': caption, 'access_token': ACCESS_TOKEN},
+        timeout=30
+    )
+    
+    response_json = r.json()
+    print(f"📋 Full response Step 1: {response_json}")
+
+    if r.status_code != 200:
+        err = response_json.get('error', {}).get('message', 'Unknown Error')
+        print(f"❌ Upload IG gagal: {err}")
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL UPLOAD IG: {err}"},
+            timeout=10
         )
+        return False
 
-        response_json = r.json()
-        print(f"📋 Full response Step 1: {response_json}")
-
-        # Cek error di step 1
-        if r.status_code != 200 or 'error' in response_json:
-            error = response_json.get('error', {})
-            err_msg = error.get('message', 'Unknown Error')
-            is_transient = error.get('is_transient', False)
-
-            if is_transient and attempt < max_retries:
-                print(f"⚠️ Transient error, retry dalam {retry_delay} detik... ({attempt}/{max_retries})")
-                time.sleep(retry_delay)
-                continue
-            else:
-                print(f"❌ Upload gagal: {err_msg}")
-                requests.post(
-                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL UPLOAD (attempt {attempt}): {err_msg}"},
-                    timeout=10
-                )
-                return False
-
-        creation_id = response_json.get('id')
-        if not creation_id:
-            print(f"❌ Container ID None! Response: {response_json}")
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
-                timeout=10
-            )
-            return False
-
-        print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
-        time.sleep(5)
-
-        print("🚀 Step 2: Publishing...")
-        r_pub = requests.post(
-            f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media_publish",
-            data={'creation_id': creation_id, 'access_token': ACCESS_TOKEN},
-            timeout=30
+    creation_id = response_json.get('id')
+    if not creation_id:
+        print(f"❌ Container ID None! Response: {response_json}")
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ CONTAINER GAGAL (ID None): {response_json}"},
+            timeout=10
         )
+        return False
 
-        response_pub = r_pub.json()
-        print(f"📋 Full response Step 2: {response_pub}")
+    print(f"✅ Container ID: {creation_id}. Jeda 5 detik...")
+    time.sleep(5)
 
-        if r_pub.status_code == 200:
-            print("✅ Post berhasil!")
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ SUCCESS! Konten Clevia sudah LIVE di Instagram!"},
-                timeout=10
-            )
-            return True
-        else:
-            error_pub = response_pub.get('error', {})
-            err_msg = error_pub.get('message', 'Publish Failed')
-            is_transient = error_pub.get('is_transient', False)
+    print("🚀 Step 2: Publishing IG...")
+    r_pub = requests.post(
+        f"https://graph.facebook.com/v21.0/{BUSINESS_ID}/media_publish",
+        data={'creation_id': creation_id, 'access_token': ACCESS_TOKEN},
+        timeout=30
+    )
+    
+    response_pub = r_pub.json()
+    print(f"📋 Full response Step 2: {response_pub}")
 
-            if is_transient and attempt < max_retries:
-                print(f"⚠️ Transient error di publish, retry dalam {retry_delay} detik... ({attempt}/{max_retries})")
-                time.sleep(retry_delay)
-                continue
-            else:
-                print(f"❌ Publish gagal: {err_msg}")
-                requests.post(
-                    f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-                    data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL PUBLISH (attempt {attempt}): {err_msg}"},
-                    timeout=10
-                )
-                return False
+    if r_pub.status_code == 200:
+        print("✅ Post IG berhasil!")
+        return True
+    else:
+        err = response_pub.get('error', {}).get('message', 'Publish Failed')
+        print(f"❌ Publish IG gagal: {err}")
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"❌ GAGAL PUBLISH IG: {err}"},
+            timeout=10
+        )
+        return False
 
-    return False
+def post_to_fb(image_url, caption):
+    print("📘 Posting ke FB Page...")
+    r = requests.post(
+        f"https://graph.facebook.com/v21.0/{FB_PAGE_ID}/photos",
+        data={
+            'url': image_url,
+            'message': caption,
+            'access_token': ACCESS_TOKEN
+        },
+        timeout=30
+    )
+    
+    response_json = r.json()
+    print(f"📋 FB Response: {response_json}")
+
+    if r.status_code == 200 and response_json.get('id'):
+        print("✅ Post FB berhasil!")
+        return True
+    else:
+        err = response_json.get('error', {}).get('message', 'FB Post Failed')
+        print(f"❌ Post FB gagal: {err}")
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": f"⚠️ Post FB gagal: {err}"},
+            timeout=10
+        )
+        return False
+
+def post_to_all(image_url, caption):
+    ig_success = post_to_ig(image_url, caption)
+    fb_success = post_to_fb(image_url, caption)
+    
+    if ig_success and fb_success:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ SUCCESS! Konten Clevia sudah LIVE di Instagram & Facebook!"},
+            timeout=10
+        )
+    elif ig_success:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": "✅ IG berhasil! ⚠️ FB gagal."},
+            timeout=10
+        )
+    else:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": "❌ Semua platform gagal!"},
+            timeout=10
+        )
+    
+    return ig_success
 
 if __name__ == "__main__":
     with open(PRODUCTS_FILE, "r") as f:
@@ -277,7 +306,7 @@ if __name__ == "__main__":
     action = wait_for_approval(msg_id)
 
     if action == "approve":
-        success = post_to_ig(image_url, caption)
+        success = post_to_all(image_url, caption)
         if success:
             posted.append(next_index)
             save_posted_indices(posted, sha)
@@ -285,7 +314,7 @@ if __name__ == "__main__":
         new_caption = ask_for_revised_caption(msg_id)
         if new_caption:
             print(f"✏️ Caption baru: {new_caption}")
-            success = post_to_ig(image_url, new_caption)
+            success = post_to_all(image_url, new_caption)
             if success:
                 posted.append(next_index)
                 save_posted_indices(posted, sha)
