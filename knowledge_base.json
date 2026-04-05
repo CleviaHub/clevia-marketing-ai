@@ -1,1 +1,46 @@
-{"insights": [], "competitor_data": [], "reports": []}
+{
+  "insights": [],
+  "competitor_data": [],
+  "reports": [
+    {
+      "tanggal": "2026-04-05",
+      "brand": "Clevia",
+      "research": {
+        "tanggal": "2024-09-16",
+        "brand": "Clevia",
+        "tren_pasar": [
+          "Pembersihan ramah lingkungan",
+          "Produk homecare yang menggunakan bahan alami",
+          "Teknologi pembersihan canggih dengan formula unik"
+        ],
+        "keyword_populer": [
+          "Pembersih rumah tangga alami",
+          "Cara membersihkan rumah dengan efektif",
+          "Produk homecare yang aman untuk keluarga"
+        ],
+        "kompetitor_insights": [
+          "So Klin fokus pada strategi konten edukatif tentang pentingnya kebersihan",
+          "Sunlight memiliki harga yang kompetitif dengan kualitas yang baik",
+          "Wipol mempromosikan produknya dengan fokus pada keamanan dan kenyamanan"
+        ],
+        "peluang_konten": [
+          "5 Tips Membersihkan Rumah dengan Bahan Alami",
+          "Cara Membuat Pembersih Rumah Tangga Sendiri",
+          "Review Produk Homecare Clevia: Kelebihan dan Kekurangan",
+          "Hari Ini Cuci Gudang: Diskon Spesial untuk Produk Clevia",
+          "Bagaimana Clevia Membantu Anda Mencapai Rumah yang Lebih Bersih dan Sehat"
+        ],
+        "rekomendasi_aksi": [
+          "Mengembangkan konten edukatif tentang manfaat produk Clevia",
+          "Mengadakan promosi spesial untuk meningkatkan penjualan",
+          "Mengoptimalkan penggunaan media sosial untuk meningkatkan kesadaran merek"
+        ],
+        "produk_prioritas": "Clevia Pembersih Multifungsi",
+        "timing_optimal": "Pukul 12.00 WIB saat masyarakat sedang istirahat dan aktif di media sosial",
+        "summary": "Clevia perlu meningkatkan kesadaran merek dengan konten edukatif dan promosi spesial untuk meningkatkan penjualan. Dengan fokus pada pembersihan ramah lingkungan dan teknologi canggih, Clevia dapat membedakan diri dari kompetitor dan meningkatkan keunggulan di pasar homecare Indonesia."
+      },
+      "creative": {},
+      "strategy": {}
+    }
+  ]
+}
