@@ -1,35 +1,36 @@
+
 # =============================================================================
 # brain.py — AI Agents
 # Agent 1: Groq / Llama 3.3 70B      → The Researcher
 # Agent 2: OpenRouter / GLM-5.1      → The Creative Director
 # Universe: "The Quiet Strength" — Novel Blog Clevia 2026
 # =============================================================================
-
+ 
 import os
 import json
 import random
 import requests
 from datetime import datetime
-
+ 
 # ── Env vars ──────────────────────────────────────────────────────────────────
 GROQ_API_KEY       = os.environ["GROQ_API_KEY"]
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
-
+ 
 GROQ_BASE_URL       = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-
+ 
 # Model config + fallback chain
 GROQ_MODEL          = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODEL = "mixtral-8x7b-32768"     # Groq fallback, masih gratis
 GLM_MODEL           = "z-ai/glm-5.1"
 FALLBACK_MODEL      = "deepseek/deepseek-chat"  # OpenRouter fallback, gratis
-
-
+ 
+ 
 # =============================================================================
 # "THE QUIET STRENGTH" — NOVEL UNIVERSE
 # 12 arc · 48 post · 1 tahun bersama Ayu
 # =============================================================================
-
+ 
 NOVEL_UNIVERSE = {
     "character": {
         "name": "Ayu",
@@ -49,6 +50,7 @@ NOVEL_UNIVERSE = {
         "Setiap post bisa berdiri sendiri, tapi jika dibaca berurutan ada perjalanan. Novel dan blog sekaligus.",
         "Tidak ada semangat palsu. Tidak ada toxic positivity. Kejujuran emosional adalah kekuatan utama.",
         "Kalimat pendek. Ada jeda. Ada ruang untuk pembaca bernapas. Seperti prosa puisi.",
+        "Subconscious branding: nama 'Clevia' dan nama produk boleh disebut natural sebagai bagian dari cerita — bukan dilarang, hanya jangan jadi kalimat pembuka yang terasa seperti iklan.",
     ],
     "chapters": [
         {
@@ -173,12 +175,12 @@ NOVEL_UNIVERSE = {
         },
     ],
 }
-
-
+ 
+ 
 # =============================================================================
 # PRODUCT KNOWLEDGE BASE
 # =============================================================================
-
+ 
 PRODUCT_KB = [
     {"id": "table_cleaner",    "name": "Pembersih Meja Premium (Fresh Herbal Guard)", "core_action": "Membantu mengurangi ketertarikan serangga (lalat, semut, kecoa, nyamuk)",      "post_wash_vibe": "Fresh Herbal",                          "tip": "Aplikasikan di sudut laci/lemari gelap, lalu buka pintu/laci agar diangin-angin — mencegah jamur pada kayu"},
     {"id": "dish_soap",        "name": "Sabun Cuci Piring Premium",                   "core_action": "Angkat lemak kuat & cepat, busa melimpah (irit), bilas cepat tanpa residu",   "post_wash_vibe": "Fresh lime / clean premium",            "tip": "Bilas sekali sudah bersih total — tidak perlu berkali-kali"},
@@ -188,12 +190,12 @@ PRODUCT_KB = [
     {"id": "hand_soap",        "name": "Sabun Cuci Tangan Premium",                    "core_action": "Bersih maksimal tapi lembut untuk pemakaian intensif",                         "post_wash_vibe": "Clean nagih",                           "tip": "Busa halus, cocok dipakai berkali-kali tanpa kulit kering"},
     {"id": "fabric_scent",     "name": "Fabric Scent Signature Premium",               "core_action": "Parfum laundry — wangi langsung naik saat kain kering",                        "post_wash_vibe": "Premium clean tahan lama",              "tip": "Wangi signature Clevia yang paling khas — scent blooms saat dijemur"},
 ]
-
-
+ 
+ 
 # =============================================================================
 # HELPERS
 # =============================================================================
-
+ 
 def get_current_chapter_context() -> dict:
     """
     Deteksi bulan & minggu saat ini.
@@ -202,10 +204,10 @@ def get_current_chapter_context() -> dict:
     now           = datetime.now()
     month_idx     = now.month - 1
     week_of_month = min((now.day - 1) // 7, 3)
-
+ 
     chapter = NOVEL_UNIVERSE["chapters"][month_idx]
     post    = chapter["posts"][week_of_month]
-
+ 
     print(f"[BRAIN] 📅 Konteks: {chapter['label']} — Arc '{chapter['arc']}' — Week {week_of_month + 1}")
     return {
         "month_label":  chapter["label"],
@@ -217,8 +219,8 @@ def get_current_chapter_context() -> dict:
         "post_product": post["product"],
         "week":         week_of_month + 1,
     }
-
-
+ 
+ 
 def select_product(chapter_ctx: dict) -> dict:
     """
     Pilih produk berdasarkan chapter context.
@@ -234,40 +236,40 @@ def select_product(chapter_ctx: dict) -> dict:
     product = random.choice(PRODUCT_KB)
     print(f"[BRAIN] Produk random: {product['name']}")
     return product
-
-
+ 
+ 
 def _parse_json(raw: str, agent_name: str) -> dict:
     """Safely parse JSON, strip markdown fences."""
-    clean = raw.strip().replace("json", "").replace("", "").strip()
+    clean = raw.strip().replace("```json", "").replace("```", "").strip()
     try:
         return json.loads(clean)
     except json.JSONDecodeError as e:
         raise ValueError(f"[{agent_name}] JSON parse gagal: {e}\nOutput:\n{raw[:600]}")
-
-
+ 
+ 
 # =============================================================================
 # API CALLERS
 # =============================================================================
-
+ 
 def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = False) -> str:
     """Groq API. Fallback: Llama 3.3 → Mixtral → DeepSeek (OpenRouter)."""
     model   = GROQ_FALLBACK_MODEL if use_fallback else GROQ_MODEL
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 2000}
-
+ 
     resp = requests.post(GROQ_BASE_URL, headers=headers, json=payload, timeout=60)
-
+ 
     if resp.status_code == 429:
         if not use_fallback:
             print(f"[BRAIN] ⚠️  {model} rate limit → Mixtral (Groq)")
             return _call_groq(messages, temperature=temperature, use_fallback=True)
         print("[BRAIN] ⚠️  Mixtral rate limit → DeepSeek (OpenRouter)")
         return _call_openrouter(messages, model=FALLBACK_MODEL, temperature=temperature)
-
+ 
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
-
-
+ 
+ 
 def _call_openrouter(messages: list, model: str = GLM_MODEL, temperature: float = 0.85) -> str:
     """OpenRouter API. Fallback: GLM-5.1 → DeepSeek."""
     headers = {
@@ -277,40 +279,40 @@ def _call_openrouter(messages: list, model: str = GLM_MODEL, temperature: float 
         "X-Title":       "Clevia AI Content Factory",
     }
     payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 4000}
-
+ 
     resp = requests.post(OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=90)
-
+ 
     if resp.status_code == 429:
         print(f"[BRAIN] ⚠️  {model} rate limit → DeepSeek")
         if model != FALLBACK_MODEL:
             return _call_openrouter(messages, model=FALLBACK_MODEL, temperature=temperature)
-
+ 
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
-
-
+ 
+ 
 # =============================================================================
 # AGENT 1 — THE RESEARCHER (Groq / Llama 3.3 70B)
 # =============================================================================
-
+ 
 def agent1_researcher(raw_rss_text: str) -> dict:
     """
     Input:  raw text dari RSS feeds (legs.fetch_rss_trends)
     Output: dict { trend, sentiment, pain_points, keywords, source, content_angle }
     """
     print("[BRAIN] 🔍 Agent 1 (Researcher / Groq) mulai bekerja...")
-
+ 
     system_prompt = (
         "Kamu adalah analis tren pasar produk rumah tangga Indonesia. "
         "Analisis berita yang diberikan, ekstrak insight relevan untuk "
         "brand produk kebersihan rumah tangga premium. "
         "Output HARUS berupa JSON valid. Tidak ada teks lain di luar JSON."
     )
-
+ 
     user_prompt = f"""
 Analisis artikel berikut:
 {raw_rss_text}
-
+ 
 Kembalikan JSON dengan format PERSIS:
 {{
   "trend": "deskripsi tren utama yang relevan (max 2 kalimat)",
@@ -321,12 +323,12 @@ Kembalikan JSON dengan format PERSIS:
   "content_angle": "sudut cerita paling menarik untuk konten Clevia (1 kalimat)"
 }}
 """
-
+ 
     raw = _call_groq([
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ], temperature=0.3)
-
+ 
     try:
         result = _parse_json(raw, "Agent 1")
         print(f"[BRAIN] ✅ Agent 1 selesai. Tren: {result.get('trend', '')[:70]}...")
@@ -341,19 +343,19 @@ Kembalikan JSON dengan format PERSIS:
             "source": "Fallback",
             "content_angle": "Kebersihan rumah sebagai bentuk cinta kepada keluarga",
         }
-
-
+ 
+ 
 # =============================================================================
 # AGENT 2 — THE CREATIVE DIRECTOR (OpenRouter / GLM-5.1)
 # =============================================================================
-
+ 
 def agent2_creative_director(trend_data: dict, product: dict, chapter_ctx: dict) -> dict:
     """
     Input:
       - trend_data   : output Agent 1
       - product      : dari PRODUCT_KB
       - chapter_ctx  : dari get_current_chapter_context()
-
+ 
     Output: dict siap publish {
         article_title, article_html,
         caption_ig, caption_fb,
@@ -362,14 +364,14 @@ def agent2_creative_director(trend_data: dict, product: dict, chapter_ctx: dict)
     }
     """
     print("[BRAIN] 🎨 Agent 2 (Creative Director / GLM-5.1) mulai bekerja...")
-
+ 
     char       = NOVEL_UNIVERSE["character"]
     principles = "\n".join(f"- {p}" for p in NOVEL_UNIVERSE["writing_principles"])
-
+ 
     system_prompt = f"""
 Kamu adalah penulis dan Creative Director untuk brand Clevia Indonesia.
 Kamu sedang menulis satu babak dari novel blog berseri berjudul "The Quiet Strength".
-
+ 
 ══════════════════════════════════════════
 KARAKTER UTAMA
 ══════════════════════════════════════════
@@ -377,23 +379,25 @@ Nama  : {char['name']}
 Latar : {char['role']}
 Dunia : {char['world']}
 Arc   : {char['arc']}
-
+ 
 ══════════════════════════════════════════
 PRINSIP PENULISAN — WAJIB DIIKUTI
 ══════════════════════════════════════════
 {principles}
-
+ 
 ══════════════════════════════════════════
 VISUAL BRAND
 ══════════════════════════════════════════
 - Estetika: Bali Resort — serene, natural light, tropical, warm tones
-- DILARANG: botol produk, kemasan, teks merek, objek komersial di visual
-- Gaya foto: photorealistic lifestyle, NO product shots
+- DILARANG: botol produk, kemasan, foto produk close-up
+- DIPERBOLEHKAN: logo Clevia muncul subtle di salah satu sudut gambar (kecil, elegan, seperti watermark premium) — bukan di tengah, bukan mendominasi komposisi
+- Strategi: subconscious branding — logo hadir halus, bukan hard-sell
+- Gaya foto: photorealistic lifestyle, fokus tetap pada suasana & manusia, logo hanya aksen kecil
 - Sapaan wajib di semua teks: "Kakak"
-
+ 
 Output HARUS berupa JSON valid. Tidak ada teks di luar JSON.
 """.strip()
-
+ 
     user_prompt = f"""
 ══════════════════════════════════════════
 KONTEKS BULAN INI
@@ -404,12 +408,12 @@ Minggu : {chapter_ctx['week']}
   Judul referensi : "{chapter_ctx['post_title']}"
   Teaser          : "{chapter_ctx['post_teaser']}"
   Angle           : {chapter_ctx['post_angle']}
-
+ 
 ══════════════════════════════════════════
 DATA TREN HARI INI (dari Researcher)
 ══════════════════════════════════════════
 {json.dumps(trend_data, ensure_ascii=False, indent=2)}
-
+ 
 ══════════════════════════════════════════
 PRODUK YANG DISISIPKAN (SECARA ORGANIK)
 ══════════════════════════════════════════
@@ -417,12 +421,12 @@ Nama    : {product['name']}
 Manfaat : {product['core_action']}
 Vibe    : {product['post_wash_vibe']}
 Tip     : {product['tip']}
-
+ 
 INGAT:
 - Produk hadir sebagai detail latar dalam cerita Ayu, BUKAN sebagai hero
 - JANGAN memulai kalimat dengan nama produk
 - Produk muncul paling cepat di paragraf ketiga artikel
-
+ 
 ══════════════════════════════════════════
 OUTPUT — FORMAT JSON PERSIS INI
 (Bahasa Indonesia semua, kecuali image prompts WAJIB Bahasa Inggris)
@@ -432,20 +436,20 @@ OUTPUT — FORMAT JSON PERSIS INI
   "article_html": "Min 400 kata. Prosa puitis, kalimat pendek, ada jeda. Cerita Ayu dalam rutinitas hariannya. Produk muncul natural sebagai bagian setting, bukan solusi yang diiklankan. Format HTML dengan <p> <h2> <em> <strong>.",
   "caption_ig": "Max 2200 karakter. Mulai 'Kakak,'. Reflektif, hangat, tidak menggurui. Akhiri dengan 5 hashtag (#Clevia dan #TheQuietStrength wajib ada).",
   "caption_fb": "Lebih panjang dari IG, full storytelling. Mulai 'Kakak,'. Akhiri 3 hashtag.",
-  "hero_image_prompt": "Bahasa Inggris. Photorealistic. Indonesian woman in quiet morning ritual at home, Bali resort aesthetic, soft natural light, tropical plants, linen textures, warm tones. NO bottles, NO labels, NO text, NO packaging. Evoke: serenity, quiet strength.",
+  "hero_image_prompt": "Bahasa Inggris. Photorealistic. Indonesian woman in quiet morning ritual at home, Bali resort aesthetic, soft natural light, tropical plants, linen textures, warm tones. Small elegant Clevia logo subtly placed in one corner of the frame (like a premium watermark, not centered, not dominant). NO bottles, NO product packaging, NO close-up product shots. Evoke: serenity, quiet strength.",
   "tiktok_image_prompts": [
     "Slide 1 (Bahasa Inggris): Before / pain point. Relatable tired home interior, slightly messy, overcast soft light, Indonesian home, no product visible, moody but not dark.",
-    "Slide 2 (Bahasa Inggris): Vibe / lifestyle. Serene Bali resort home interior, airy morning light, tropical plants, clean linen, Indonesian woman at peace, no product visible.",
-    "Slide 3 (Bahasa Inggris): After / result. Pristine clean Indonesian home, sparkling surfaces, warm golden light, fresh flowers, family warmth, no product packaging visible."
+    "Slide 2 (Bahasa Inggris): Vibe / lifestyle. Serene Bali resort home interior, airy morning light, tropical plants, clean linen, Indonesian woman at peace, small Clevia logo subtle in corner.",
+    "Slide 3 (Bahasa Inggris): After / result. Pristine clean Indonesian home, sparkling surfaces, warm golden light, fresh flowers, family warmth, small Clevia logo subtle in corner, no product packaging visible."
   ]
 }}
 """
-
+ 
     raw = _call_openrouter([
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ], model=GLM_MODEL, temperature=0.85)
-
+ 
     result = _parse_json(raw, "Agent 2")
     print(f"[BRAIN] ✅ Agent 2 selesai. Judul: {result.get('article_title', '')}")
     return result
