@@ -10,14 +10,16 @@ import json
 import requests
  
 # ── Env vars ──────────────────────────────────────────────────────────────────
-HF_API_TOKEN         = os.environ["HF_API_TOKEN"]           # Hugging Face token
-IG_ACCESS_TOKEN      = os.environ["INSTAGRAM_ACCESS_TOKEN"]
-IG_BUSINESS_ID       = os.environ["INSTAGRAM_BUSINESS_ACCOUNT_ID"]
-FB_ACCESS_TOKEN      = os.environ.get("FB_ACCESS_TOKEN", IG_ACCESS_TOKEN)  # biasanya sama
-FB_PAGE_ID           = os.environ["FB_PAGE_ID"]
-BLOGGER_ACCESS_TOKEN = os.environ["BLOGGER_ACCESS_TOKEN"]
-BLOGGER_BLOG_ID      = os.environ["BLOGGER_BLOG_ID"]
-TIKTOK_ACCESS_TOKEN  = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
+HF_API_TOKEN          = os.environ["HF_API_TOKEN"]           # Hugging Face token
+IG_ACCESS_TOKEN       = os.environ["INSTAGRAM_ACCESS_TOKEN"]
+IG_BUSINESS_ID        = os.environ["INSTAGRAM_BUSINESS_ACCOUNT_ID"]
+FB_ACCESS_TOKEN       = os.environ.get("FB_ACCESS_TOKEN", IG_ACCESS_TOKEN)  # biasanya sama
+FB_PAGE_ID            = os.environ["FB_PAGE_ID"]
+BLOGGER_CLIENT_ID     = os.environ["BLOGGER_CLIENT_ID"]
+BLOGGER_CLIENT_SECRET = os.environ["BLOGGER_CLIENT_SECRET"]
+BLOGGER_REFRESH_TOKEN = os.environ["BLOGGER_REFRESH_TOKEN"]
+BLOGGER_BLOG_ID       = os.environ["BLOGGER_BLOG_ID"]
+TIKTOK_ACCESS_TOKEN   = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
  
 # ── Image generation endpoints ────────────────────────────────────────────────
 FLUX_API_URL        = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
@@ -170,12 +172,35 @@ def post_facebook(image_url: str, caption: str) -> bool:
 # 4. GOOGLE BLOGGER
 # =============================================================================
  
+def _get_blogger_access_token() -> str:
+    """
+    Tukar refresh_token jadi access_token baru (berlaku 1 jam).
+    Dipanggil setiap kali sebelum posting ke Blogger, jadi token selalu fresh.
+    """
+    print("[HANDS] 🔑 Refreshing Blogger access token...")
+    resp = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id":     BLOGGER_CLIENT_ID,
+            "client_secret": BLOGGER_CLIENT_SECRET,
+            "refresh_token": BLOGGER_REFRESH_TOKEN,
+            "grant_type":    "refresh_token",
+        },
+        timeout=30,
+    )
+    resp.raise_for_status()
+    access_token = resp.json()["access_token"]
+    print("[HANDS] ✅ Blogger access token refreshed")
+    return access_token
+ 
+ 
 def post_blogger(title: str, html_content: str, image_url: str) -> bool:
     """
     Publish artikel ke Google Blogger via Blogger API v3.
     HTML content dari Agent 2 langsung dipublish.
     """
     print("[HANDS] 📝 Posting ke Google Blogger...")
+    access_token = _get_blogger_access_token()
     url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOGGER_BLOG_ID}/posts/"
  
     # Sisipkan gambar hero di awal artikel
@@ -195,7 +220,7 @@ def post_blogger(title: str, html_content: str, image_url: str) -> bool:
     resp = requests.post(
         url,
         headers={
-            "Authorization": f"Bearer {BLOGGER_ACCESS_TOKEN}",
+            "Authorization": f"Bearer {access_token}",
             "Content-Type":  "application/json",
         },
         json=payload,
