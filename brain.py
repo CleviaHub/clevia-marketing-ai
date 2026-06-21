@@ -21,8 +21,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Model config + fallback chain
 GROQ_MODEL          = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODEL = "mixtral-8x7b-32768"     # Groq fallback, masih gratis
-GLM_MODEL           = "z-ai/glm-4.5-air:free"
-FALLBACK_MODEL      = "deepseek/deepseek-chat-v3.1:free"  # OpenRouter fallback, gratis
+GLM_MODEL           = "openrouter/free"            # auto-router, pilih model gratis yang lagi available
+FALLBACK_MODEL      = "openai/gpt-oss-20b:free"     # fallback eksplisit, paling stabil
 
 
 # =============================================================================
@@ -270,7 +270,7 @@ def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = Fa
 
 
 def _call_openrouter(messages: list, model: str = GLM_MODEL, temperature: float = 0.85) -> str:
-    """OpenRouter API. Fallback: GLM-5.1 → DeepSeek."""
+    """OpenRouter API. Fallback chain: openrouter/free (auto) → gpt-oss-20b:free."""
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type":  "application/json",
@@ -281,8 +281,9 @@ def _call_openrouter(messages: list, model: str = GLM_MODEL, temperature: float 
 
     resp = requests.post(OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=90)
 
-    if resp.status_code == 429:
-        print(f"[BRAIN] ⚠️  {model} rate limit → DeepSeek")
+    # 429 = rate limit, 404 = model/endpoint tidak tersedia saat ini
+    if resp.status_code in (429, 404):
+        print(f"[BRAIN] ⚠️  {model} gagal ({resp.status_code}) → fallback {FALLBACK_MODEL}")
         if model != FALLBACK_MODEL:
             return _call_openrouter(messages, model=FALLBACK_MODEL, temperature=temperature)
 
