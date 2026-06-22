@@ -238,12 +238,25 @@ def select_product(chapter_ctx: dict) -> dict:
 
 
 def _parse_json(raw: str, agent_name: str) -> dict:
-    """Safely parse JSON, strip markdown fences."""
+    """Safely parse JSON — strip fences, extract JSON block if model adds preamble."""
+    import re as _re
     clean = raw.strip().replace("```json", "").replace("```", "").strip()
+
+    # Try direct parse
     try:
         return json.loads(clean)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"[{agent_name}] JSON parse gagal: {e}\nOutput:\n{raw[:600]}")
+    except json.JSONDecodeError:
+        pass
+
+    # Try extract JSON object from within text
+    match = _re.search(r'\{.*\}', clean, _re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(f"[{agent_name}] JSON parse gagal.\nOutput:\n{raw[:600]}")
 
 
 # =============================================================================
@@ -434,9 +447,9 @@ OUTPUT — FORMAT JSON PERSIS INI
 {{
   "article_title": "Judul sastra ringan, max 70 karakter. Bukan clickbait. Bukan judul iklan.",
   "article_html": "Min 400 kata. Prosa puitis, kalimat pendek, ada jeda. Cerita Ayu dalam rutinitas hariannya. Produk muncul natural sebagai bagian setting, bukan solusi yang diiklankan. Format HTML dengan <p> <h2> <em> <strong>.",
-  "caption_ig": "Max 2200 karakter. Mulai 'Kakak,'. Reflektif, hangat, tidak menggurui. Akhiri dengan 5 hashtag (#Clevia dan #TheQuietStrength wajib ada).",
-  "caption_fb": "Lebih panjang dari IG, full storytelling. Mulai 'Kakak,'. Akhiri 3 hashtag.",
-  "hero_image_prompt": "Bahasa Inggris. Photorealistic. Indonesian woman in quiet morning ritual at home, Bali resort aesthetic, soft natural light, tropical plants, linen textures, warm tones. Small elegant Clevia logo subtly placed in one corner of the frame (like a premium watermark, not centered, not dominant). NO bottles, NO product packaging, NO close-up product shots. Evoke: serenity, quiet strength.",
+  "caption_ig": "Max 2200 karakter. Mulai 'Kakak,'. PENTING: tone dan suasana caption HARUS relate sama scene yang dipilih di hero_image_prompt — kalau nature outdoor, opening harus terasa luas dan bebas; kalau interior, terasa intim dan hangat. Sisipkan 1-2 kalimat sensory aroma/kesegaran secara natural dalam cerita (contoh: 'ada wangi herbal yang pelan naik', 'udara terasa beda setelah semua bersih', 'seperti alam masuk ke dalam rumah'). Reflektif, hangat, tidak menggurui. Akhiri dengan 5 hashtag (#Clevia dan #TheQuietStrength wajib ada).",
+  "caption_fb": "Lebih panjang dari IG, full storytelling. Mulai 'Kakak,'. PENTING: mood caption harus mencerminkan scene yang dipilih di hero_image_prompt — sinkron antara visual dan kata-kata. Sisipkan sensasi aroma/kesegaran secara natural. Akhiri 3 hashtag.",
+  "hero_image_prompt": "Bahasa Inggris. Photorealistic lifestyle photo. Choose ONE scene that best matches the article theme and caption mood. Options: (a) INTERIOR — sunlit empty living room or kitchen, fresh tropical flowers in vase, morning mist-like atmosphere, clean gleaming surfaces, herbal freshness lingering in the air; (b) PERSON INDOOR — Indonesian woman from behind or mid-distance, loose linen outfit, near open window, breeze moving sheer curtain, tropical garden outside; (c) NATURE OUTDOOR — lush tropical Indonesian garden, rice field at golden hour, coastal cliffs with morning mist, or open tropical forest path — evoking freedom, fresh air, natural cleanliness, harmony with nature. IMPORTANT: whichever scene chosen, the mood must match the caption tone (peaceful = soft light; refreshing = bright morning; nostalgic = golden hour). Bali resort or Indonesian nature aesthetic. NO close-up hands, NO detailed fingers, NO face close-up, NO suggestive pose, NO product bottles. Small elegant Clevia logo subtly in one corner.",
   "tiktok_image_prompts": [
     "Slide 1 (Bahasa Inggris): Before / pain point. Relatable tired home interior, slightly messy, overcast soft light, Indonesian home, no product visible, moody but not dark.",
     "Slide 2 (Bahasa Inggris): Vibe / lifestyle. Serene Bali resort home interior, airy morning light, tropical plants, clean linen, Indonesian woman at peace, small Clevia logo subtle in corner.",
