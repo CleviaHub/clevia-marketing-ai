@@ -21,8 +21,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Model config + fallback chain
 GROQ_MODEL          = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODEL = "mixtral-8x7b-32768"     # Groq fallback, masih gratis
-GLM_MODEL           = "openrouter/free"            # auto-router, pilih model gratis yang lagi available
-FALLBACK_MODEL      = "openai/gpt-oss-20b:free"     # fallback eksplisit, paling stabil
+GLM_MODEL           = "deepseek/deepseek-r1-0528:free"  # strong reasoning model, bagus buat JSON
+FALLBACK_MODEL      = "google/gemini-2.0-flash-exp:free"      # fallback, reliable
 
 
 # =============================================================================
@@ -408,7 +408,9 @@ VISUAL BRAND
 - Gaya foto: photorealistic lifestyle, fokus tetap pada suasana & manusia, logo hanya aksen kecil
 - Sapaan wajib di semua teks: "Kakak"
 
-Output HARUS berupa JSON valid. Tidak ada teks di luar JSON.
+Output HARUS berupa JSON valid dan HANYA JSON.
+DILARANG KERAS: jangan tulis instruksi, jangan tulis preamble, jangan tulis penjelasan.
+Mulai langsung dengan karakter { dan akhiri dengan }.
 """.strip()
 
     user_prompt = f"""
@@ -441,7 +443,8 @@ INGAT:
 - Produk muncul paling cepat di paragraf ketiga artikel
 
 ══════════════════════════════════════════
-OUTPUT — FORMAT JSON PERSIS INI
+RESPOND WITH VALID JSON ONLY — NO OTHER TEXT
+Start with { and end with }. No markdown. No explanation. No preamble.
 (Bahasa Indonesia semua, kecuali image prompts WAJIB Bahasa Inggris)
 ══════════════════════════════════════════
 {{
