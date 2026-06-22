@@ -410,7 +410,7 @@ VISUAL BRAND
 
 Output HARUS berupa JSON valid dan HANYA JSON.
 DILARANG KERAS: jangan tulis instruksi, jangan tulis preamble, jangan tulis penjelasan.
-Mulai langsung dengan karakter { dan akhiri dengan }.
+Mulai langsung dengan karakter {{ dan akhiri dengan }}.
 """.strip()
 
     user_prompt = f"""
@@ -444,7 +444,7 @@ INGAT:
 
 ══════════════════════════════════════════
 RESPOND WITH VALID JSON ONLY — NO OTHER TEXT
-Start with { and end with }. No markdown. No explanation. No preamble.
+Start with {{ and end with }}. No markdown. No explanation. No preamble.
 (Bahasa Indonesia semua, kecuali image prompts WAJIB Bahasa Inggris)
 ══════════════════════════════════════════
 {{
