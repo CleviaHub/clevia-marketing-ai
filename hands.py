@@ -74,11 +74,14 @@ def generate_image(prompt: str, retries: int = 3) -> str:
             print(f"[HANDS] HF error: {e}")
             time.sleep(10)
 
-    # Pollinations fallback — truncate prompt agar URL tidak terlalu panjang (Meta API limit)
-    short_prompt = full_prompt[:300]  # Meta Graph API nolak URL > ~2000 chars
-    encoded_prompt = requests.utils.quote(short_prompt)
+    # Pollinations fallback — pakai prompt pendek (max 80 chars) biar URL nggak ditolak Meta API
+    # Ekstrak core concept dari prompt: ambil kata-kata pertama sebelum koma/titik/OR/NO
+    import re as _re
+    core = _re.split(r'[,.]|\bOR\b|\bNO\b|\bEITHER\b', prompt)[0].strip()
+    core = core[:80]  # hard limit 80 chars
+    encoded_prompt = requests.utils.quote(core)
     url = POLLINATIONS_URL.format(prompt=encoded_prompt)
-    print(f"[HANDS] 🔗 Image URL length: {len(url)} chars")
+    print(f"[HANDS] 🔗 Pollinations URL: {url[:100]}... ({len(url)} chars)")
     return url
 
 
