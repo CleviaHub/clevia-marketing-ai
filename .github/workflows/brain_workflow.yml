@@ -1,38 +1,38 @@
 name: MagicSpace AI Brain
- 
+
 on:
   schedule:
     - cron: '0 2 * * *'  # Setiap hari jam 09.00 WIB (UTC+7 = UTC 02.00)
   workflow_dispatch:      # Manual trigger
- 
+
 jobs:
   run-content-factory:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
- 
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
- 
+
       - name: Install dependencies
         run: |
           pip install requests feedparser
- 
+
       - name: Run Content Factory
         env:
           # ── AI Agents ──────────────────────────────────
           GROQ_API_KEY:        ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY:  ${{ secrets.OPENROUTER_API_KEY }}
           HF_API_TOKEN:        ${{ secrets.HF_API_TOKEN }}
- 
+
           # ── Telegram Gateway ───────────────────────────
           TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
- 
+
           # ── Publishing ─────────────────────────────────
           INSTAGRAM_ACCESS_TOKEN:          ${{ secrets.IG_ACCESS_TOKEN }}
           INSTAGRAM_BUSINESS_ACCOUNT_ID:   ${{ secrets.IG_BUSINESS_ID }}
@@ -43,9 +43,10 @@ jobs:
           BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
           BLOGGER_BLOG_ID:       ${{ secrets.BLOGGER_BLOG_ID }}
           TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
- 
+          IMGBB_API_KEY:        ${{ secrets.IMGBB_API_KEY }}
+
         run: python main.py
- 
+
       - name: Keep repo alive
         run: |
           git config user.name "CleviaBot"
