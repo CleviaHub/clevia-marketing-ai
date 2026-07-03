@@ -21,8 +21,9 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Model config + fallback chain
 GROQ_MODEL          = "llama-3.3-70b-versatile"
 GROQ_FALLBACK_MODEL = "mixtral-8x7b-32768"     # Groq fallback, masih gratis
-GLM_MODEL           = "deepseek/deepseek-chat-v3-0324:free"  # DeepSeek V3, stable & reliable
-FALLBACK_MODEL      = "meta-llama/llama-3.3-70b-instruct:free"    # Llama 3.3, confirmed free Jun 2026
+# Agent 2 sekarang pakai Groq juga — gratis, limit 14,400 req/hari
+AGENT2_MODEL        = "llama-3.3-70b-versatile"   # Groq: bagus buat creative writing & JSON
+AGENT2_FALLBACK     = "mixtral-8x7b-32768"         # Groq: fallback, strong instruction following
 
 
 # =============================================================================
@@ -276,29 +277,36 @@ def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = Fa
             print(f"[BRAIN] ⚠️  {model} rate limit → Mixtral (Groq)")
             return _call_groq(messages, temperature=temperature, use_fallback=True)
         print("[BRAIN] ⚠️  Mixtral rate limit → DeepSeek (OpenRouter)")
-        return _call_openrouter(messages, model=FALLBACK_MODEL, temperature=temperature)
+        return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
 
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
 
-def _call_openrouter(messages: list, model: str = GLM_MODEL, temperature: float = 0.85) -> str:
-    """OpenRouter API. Fallback chain: openrouter/free (auto) → gpt-oss-20b:free."""
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type":  "application/json",
-        "HTTP-Referer":  "https://liveclevia.com",
-        "X-Title":       "Clevia AI Content Factory",
+def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: bool = False) -> str:
+    """
+    Groq API untuk Agent 2 (Creative Director).
+    Gratis, limit 14,400 req/hari. Fallback chain: Llama 3.3 → Mixtral.
+    """
+    model = AGENT2_FALLBACK if use_fallback else AGENT2_MODEL
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": 4000,
     }
-    payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 4000}
 
-    resp = requests.post(OPENROUTER_BASE_URL, headers=headers, json=payload, timeout=90)
+    resp = requests.post(GROQ_BASE_URL, headers=headers, json=payload, timeout=90)
 
-    # 429 = rate limit, 404 = model/endpoint tidak tersedia saat ini
-    if resp.status_code in (429, 404):
-        print(f"[BRAIN] ⚠️  {model} gagal ({resp.status_code}) → fallback {FALLBACK_MODEL}")
-        if model != FALLBACK_MODEL:
-            return _call_openrouter(messages, model=FALLBACK_MODEL, temperature=temperature)
+    if resp.status_code == 429:
+        if not use_fallback:
+            print(f"[BRAIN] ⚠️  {model} rate limit → fallback {AGENT2_FALLBACK}")
+            return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
+        print(f"[BRAIN] ⚠️  {AGENT2_FALLBACK} rate limit — tunggu sebentar dan retry...")
+        import time
+        time.sleep(10)
+        return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
 
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
@@ -461,10 +469,10 @@ Start with {{ and end with }}. No markdown. No explanation. No preamble.
 }}
 """
 
-    raw = _call_openrouter([
+    raw = _call_groq_agent2([
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
-    ], model=GLM_MODEL, temperature=0.85)
+    ], temperature=0.85)
 
     result = _parse_json(raw, "Agent 2")
     print(f"[BRAIN] ✅ Agent 2 selesai. Judul: {result.get('article_title', '')}")
