@@ -148,10 +148,10 @@ def post_instagram(image_url: str, caption: str) -> bool:
     print("[HANDS] 📸 Posting ke Instagram...")
     base = f"https://graph.facebook.com/v19.0/{IG_BUSINESS_ID}"
 
-    # Step 1: Create container — pakai JSON body, bukan params (hindari URL terlalu panjang)
+    # Step 1: Create container — pakai form data (Meta API requirement)
     create_resp = requests.post(
         f"{base}/media",
-        json={
+        data={
             "image_url":    image_url,
             "caption":      caption,
             "access_token": IG_ACCESS_TOKEN,
@@ -192,7 +192,7 @@ def post_facebook(image_url: str, caption: str) -> bool:
     print("[HANDS] 📘 Posting ke Facebook Page...")
     url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos"
 
-    resp = requests.post(url, json={
+    resp = requests.post(url, data={
         "url":          image_url,
         "caption":      caption,
         "access_token": FB_ACCESS_TOKEN,
