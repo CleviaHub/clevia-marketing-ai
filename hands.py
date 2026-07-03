@@ -29,16 +29,37 @@ POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&
 # 1. IMAGE GENERATION
 # =============================================================================
 
-def generate_image(prompt: str, retries: int = 3) -> str:
+def _upload_to_imgbb(image_bytes: bytes) -> str:
+    """
+    Upload image bytes ke ImgBB (free, no account needed for basic use).
+    Return: URL publik gambar.
+    """
+    import base64
+    imgbb_key = os.environ.get("IMGBB_API_KEY", "")
+    if not imgbb_key:
+        raise ValueError("IMGBB_API_KEY tidak ada")
+    
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    resp = requests.post(
+        "https://api.imgbb.com/1/upload",
+        data={"key": imgbb_key, "image": b64},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    url = resp.json()["data"]["url"]
+    print(f"[HANDS] ✅ ImgBB upload sukses: {url[:60]}...")
+    return url
+
+
+def generate_image(prompt: str, retries: int = 5) -> str:
     """
     Generate gambar via Flux.1 [schnell] di HF Inference API.
-    Fallback ke Pollinations.ai jika HF gagal.
-    Return: URL gambar publik (string).
+    Upload ke ImgBB biar dapet URL publik permanen.
+    Fallback ke Pollinations jika HF atau ImgBB gagal.
 
-    Brand mandate: lifestyle-first, logo Clevia boleh subtle di sudut
-    (subconscious branding) — TAPI tetap NO product bottles/packaging.
+    Brand mandate: lifestyle-first, subtle Clevia logo,
+    NO close-up hands/face, NO product bottles.
     """
-    # Enforce brand constraint di setiap prompt
     brand_suffix = (
         ", photorealistic Bali resort lifestyle aesthetic, "
         "natural morning light, serene clean atmosphere, "
@@ -49,39 +70,50 @@ def generate_image(prompt: str, retries: int = 3) -> str:
         "NO close-up hands, NO detailed fingers, NO product bottles, NO product packaging"
     )
     full_prompt = prompt + brand_suffix
-
     print(f"[HANDS] 🎨 Generating image: {prompt[:60]}...")
 
-    # Coba Flux.1 via HF
+    # Coba Flux.1 via HF — retry lebih agresif
     for attempt in range(retries):
         try:
             headers = {"Authorization": f"Bearer {HF_API_TOKEN}"}
             payload = {"inputs": full_prompt, "parameters": {"num_inference_steps": 4}}
-
             resp = requests.post(FLUX_API_URL, headers=headers, json=payload, timeout=120)
 
             if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image"):
-                print("[HANDS] ✅ Flux.1 berhasil — menggunakan URL Pollinations sebagai proxy publik")
-                break
+                print(f"[HANDS] ✅ Flux.1 generate sukses (attempt {attempt+1})")
+                # Upload ke ImgBB biar dapet URL publik
+                try:
+                    url = _upload_to_imgbb(resp.content)
+                    return url
+                except Exception as e:
+                    print(f"[HANDS] ImgBB upload gagal: {e} — fallback Pollinations")
+                    break  # keluar loop, pakai Pollinations
 
             if resp.status_code == 503:
-                wait = (attempt + 1) * 20
-                print(f"[HANDS] Model loading... tunggu {wait}s (attempt {attempt+1}/{retries})")
+                wait = (attempt + 1) * 15  # 15s, 30s, 45s, 60s, 75s
+                print(f"[HANDS] HF model loading... tunggu {wait}s (attempt {attempt+1}/{retries})")
                 time.sleep(wait)
                 continue
+
+            if resp.status_code == 429:
+                print(f"[HANDS] HF rate limit — tunggu 30s (attempt {attempt+1}/{retries})")
+                time.sleep(30)
+                continue
+
+            print(f"[HANDS] HF unexpected status {resp.status_code} — fallback Pollinations")
+            break
 
         except Exception as e:
             print(f"[HANDS] HF error: {e}")
             time.sleep(10)
 
-    # Pollinations fallback — pakai prompt pendek (max 80 chars) biar URL nggak ditolak Meta API
-    # Ekstrak core concept dari prompt: ambil kata-kata pertama sebelum koma/titik/OR/NO
+    # Pollinations fallback — short prompt agar URL nggak ditolak Meta API
     import re as _re
-    core = _re.split(r'[,.]|\bOR\b|\bNO\b|\bEITHER\b', prompt)[0].strip()
-    core = core[:80]  # hard limit 80 chars
+    core = _re.split(r'[,.]|\bOR\b|\bNO\b|\bEITHER\b|\bAVOID\b', prompt)[0].strip()
+    core = core[:80]
     encoded_prompt = requests.utils.quote(core)
     url = POLLINATIONS_URL.format(prompt=encoded_prompt)
-    print(f"[HANDS] 🔗 Pollinations URL: {url[:100]}... ({len(url)} chars)")
+    print(f"[HANDS] 🔗 Pollinations fallback URL ({len(url)} chars)")
     return url
 
 
