@@ -241,7 +241,7 @@ def select_product(chapter_ctx: dict) -> dict:
 def _parse_json(raw: str, agent_name: str) -> dict:
     """Safely parse JSON — strip fences, extract JSON block if model adds preamble."""
     import re as _re
-    clean = raw.strip().replace("```json", "").replace("```", "").strip()
+    clean = raw.strip().replace("json", "").replace("", "").strip()
 
     # Try direct parse
     try:
@@ -294,7 +294,7 @@ def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: b
         "model": model,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": 4000,
+        "max_tokens": 2000,  # dikurangi dari 4000 biar nggak exceed context window Mixtral
     }
 
     resp = requests.post(GROQ_BASE_URL, headers=headers, json=payload, timeout=90)
@@ -303,10 +303,26 @@ def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: b
         if not use_fallback:
             print(f"[BRAIN] ⚠️  {model} rate limit → fallback {AGENT2_FALLBACK}")
             return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
-        print(f"[BRAIN] ⚠️  {AGENT2_FALLBACK} rate limit — tunggu sebentar dan retry...")
+        print(f"[BRAIN] ⚠️  {AGENT2_FALLBACK} rate limit — tunggu 10s dan retry...")
         import time
         time.sleep(10)
         return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
+
+    if resp.status_code == 400:
+        error_body = resp.json() if resp.content else {}
+        error_msg = str(error_body)
+        print(f"[BRAIN] ⚠️  {model} 400 Bad Request: {error_msg[:200]}")
+        # Kemungkinan prompt terlalu panjang — truncate user prompt dan retry
+        if not use_fallback and "context" in error_msg.lower() or "token" in error_msg.lower() or True:
+            print(f"[BRAIN] Truncating user prompt dan fallback ke {AGENT2_FALLBACK}...")
+            # Truncate user message ke 3000 chars
+            truncated = []
+            for msg in messages:
+                if msg["role"] == "user" and len(msg["content"]) > 3000:
+                    truncated.append({"role": "user", "content": msg["content"][:3000] + "\n\n[truncated for length]"})
+                else:
+                    truncated.append(msg)
+            return _call_groq_agent2(truncated, temperature=temperature, use_fallback=True)
 
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
