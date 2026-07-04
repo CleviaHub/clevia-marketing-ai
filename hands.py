@@ -191,7 +191,9 @@ def post_instagram(image_url: str, caption: str) -> bool:
         timeout=30,
     )
 
-    create_resp.raise_for_status()
+    if create_resp.status_code != 200:
+        print(f"[HANDS] ❌ IG container error {create_resp.status_code}: {create_resp.text}")
+        create_resp.raise_for_status()
     container_id = create_resp.json().get("id")
     if not container_id:
         print(f"[HANDS] ❌ IG container creation gagal: {create_resp.text}")
