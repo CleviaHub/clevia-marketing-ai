@@ -140,37 +140,76 @@ def generate_tiktok_images(prompts: list[str]) -> list[str]:
 # 2. INSTAGRAM
 # =============================================================================
 
+def _download_and_upload_image(image_url: str) -> str:
+    """
+    Download gambar dari URL, upload ke Facebook sebagai file binary.
+    Return: Facebook image URL yang bisa dipakai buat IG posting.
+    Ini workaround karena Meta butuh URL gambar yang stabil.
+    """
+    import base64, io
+    print(f"[HANDS] ⬇️  Downloading image dari: {image_url[:60]}...")
+    resp = requests.get(image_url, timeout=60)
+    resp.raise_for_status()
+    image_bytes = resp.content
+    print(f"[HANDS] ✅ Image downloaded ({len(image_bytes)} bytes)")
+    return image_bytes
+
+
 def post_instagram(image_url: str, caption: str) -> bool:
     """
     Publish 1 foto ke Instagram Business Account via Meta Graph API.
-    Flow: create media container → publish.
+    Flow: download image → upload binary ke FB → publish ke IG.
     """
     print("[HANDS] 📸 Posting ke Instagram...")
     base = f"https://graph.facebook.com/v19.0/{IG_BUSINESS_ID}"
 
-    # Step 1: Create container — pakai form data (Meta API requirement)
+    # Download image dulu biar ada binary-nya
+    try:
+        image_bytes = _download_and_upload_image(image_url)
+    except Exception as e:
+        print(f"[HANDS] ❌ Download image gagal: {e}")
+        return False
+
+    # Step 1: Create container dengan upload binary langsung
     create_resp = requests.post(
         f"{base}/media",
         data={
-            "image_url":    image_url,
             "caption":      caption,
             "access_token": IG_ACCESS_TOKEN,
+            "media_type":   "IMAGE",
         },
-        timeout=30,
+        files={
+            "image": ("image.jpg", image_bytes, "image/jpeg"),
+        },
+        timeout=60,
     )
+
+    if create_resp.status_code != 200:
+        print(f"[HANDS] ⚠️  Binary upload gagal ({create_resp.status_code}), coba via URL...")
+        # Fallback: coba pakai URL langsung
+        create_resp = requests.post(
+            f"{base}/media",
+            data={
+                "image_url":    image_url,
+                "caption":      caption,
+                "access_token": IG_ACCESS_TOKEN,
+            },
+            timeout=30,
+        )
+
     create_resp.raise_for_status()
     container_id = create_resp.json().get("id")
     if not container_id:
         print(f"[HANDS] ❌ IG container creation gagal: {create_resp.text}")
         return False
 
-    time.sleep(3)  # tunggu container ready
+    time.sleep(5)  # tunggu container ready
 
     # Step 2: Publish
     publish_resp = requests.post(
         f"{base}/media_publish",
-        params={
-            "creation_id": container_id,
+        data={
+            "creation_id":  container_id,
             "access_token": IG_ACCESS_TOKEN,
         },
         timeout=30,
