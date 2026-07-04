@@ -241,7 +241,7 @@ def select_product(chapter_ctx: dict) -> dict:
 def _parse_json(raw: str, agent_name: str) -> dict:
     """Safely parse JSON — strip fences, extract JSON block if model adds preamble."""
     import re as _re
-    clean = raw.strip().replace("json", "").replace("", "").strip()
+    clean = raw.strip().replace("```json", "").replace("```", "").strip()
 
     # Try direct parse
     try:
@@ -256,6 +256,23 @@ def _parse_json(raw: str, agent_name: str) -> dict:
             return json.loads(match.group())
         except json.JSONDecodeError:
             pass
+
+    # Last resort: coba repair JSON yang kepotong
+    try:
+        # Hitung unclosed braces dan tutup
+        open_braces = clean.count('{') - clean.count('}')
+        open_brackets = clean.count('[') - clean.count(']')
+        repaired = clean
+        # Tutup string yang mungkin terbuka
+        if repaired.count('"') % 2 != 0:
+            repaired += '"'
+        repaired += ']' * max(0, open_brackets)
+        repaired += '}' * max(0, open_braces)
+        result = json.loads(repaired)
+        print(f"[{agent_name}] ⚠️  JSON repaired (was truncated)")
+        return result
+    except Exception:
+        pass
 
     raise ValueError(f"[{agent_name}] JSON parse gagal.\nOutput:\n{raw[:600]}")
 
@@ -294,7 +311,7 @@ def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: b
         "model": model,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": 2000,  # dikurangi dari 4000 biar nggak exceed context window Mixtral
+        "max_tokens": 3000,  # cukup buat full JSON output
     }
 
     resp = requests.post(GROQ_BASE_URL, headers=headers, json=payload, timeout=90)
@@ -473,9 +490,9 @@ Start with {{ and end with }}. No markdown. No explanation. No preamble.
 ══════════════════════════════════════════
 {{
   "article_title": "Judul sastra ringan, max 70 karakter. Bukan clickbait. Bukan judul iklan.",
-  "article_html": "150-250 kata SAJA (singkat tapi berkesan). Prosa puitis, kalimat pendek, ada jeda. Cerita Ayu dalam rutinitas hariannya. Produk muncul natural. Format HTML dengan tag <p> dan <h2> saja. JANGAN lebih dari 250 kata.",
-  "caption_ig": "Max 500 karakter. Mulai 'Kakak,'. PENTING: tone dan suasana caption HARUS relate sama scene yang dipilih di hero_image_prompt — kalau nature outdoor, opening harus terasa luas dan bebas; kalau interior, terasa intim dan hangat. Sisipkan 1-2 kalimat sensory aroma/kesegaran secara natural dalam cerita (contoh: 'ada wangi herbal yang pelan naik', 'udara terasa beda setelah semua bersih', 'seperti alam masuk ke dalam rumah'). Reflektif, hangat, tidak menggurui. Akhiri dengan 5 hashtag (#Clevia dan #TheQuietStrength wajib ada).",
-  "caption_fb": "Max 600 karakter. Mulai 'Kakak,'. PENTING: mood caption harus mencerminkan scene yang dipilih di hero_image_prompt — sinkron antara visual dan kata-kata. Sisipkan sensasi aroma/kesegaran secara natural. Akhiri 3 hashtag.",
+  "article_html": "MAKSIMAL 80 KATA. 3-4 paragraf pendek saja. Prosa puitis. Format HTML dengan <p> saja, tanpa <h2>. Singkat dan berkesan.",
+  "caption_ig": "Max 300 karakter. Mulai 'Kakak,'. PENTING: tone dan suasana caption HARUS relate sama scene yang dipilih di hero_image_prompt — kalau nature outdoor, opening harus terasa luas dan bebas; kalau interior, terasa intim dan hangat. Sisipkan 1-2 kalimat sensory aroma/kesegaran secara natural dalam cerita (contoh: 'ada wangi herbal yang pelan naik', 'udara terasa beda setelah semua bersih', 'seperti alam masuk ke dalam rumah'). Reflektif, hangat, tidak menggurui. Akhiri dengan 5 hashtag (#Clevia dan #TheQuietStrength wajib ada).",
+  "caption_fb": "Max 400 karakter. Mulai 'Kakak,'. PENTING: mood caption harus mencerminkan scene yang dipilih di hero_image_prompt — sinkron antara visual dan kata-kata. Sisipkan sensasi aroma/kesegaran secara natural. Akhiri 3 hashtag.",
   "hero_image_prompt": "Bahasa Inggris. Photorealistic lifestyle photo. Choose ONE scene that best matches the article theme and caption mood. Options: (a) INTERIOR — sunlit empty living room or kitchen, fresh tropical flowers in vase, morning mist-like atmosphere, clean gleaming surfaces, herbal freshness lingering in the air; (b) PERSON INDOOR — Indonesian woman from behind or mid-distance, loose linen outfit, near open window, breeze moving sheer curtain, tropical garden outside; (c) NATURE OUTDOOR — lush tropical Indonesian garden, rice field at golden hour, coastal cliffs with morning mist, or open tropical forest path — evoking freedom, fresh air, natural cleanliness, harmony with nature. IMPORTANT: whichever scene chosen, the mood must match the caption tone (peaceful = soft light; refreshing = bright morning; nostalgic = golden hour). Bali resort or Indonesian nature aesthetic. NO close-up hands, NO detailed fingers, NO face close-up, NO cleavage, NO revealing clothing, NO suggestive pose, NO product bottles. AVOID showing hands or fingers in detail — if hands must appear keep them at distance or partially hidden. AVOID showing face directly — use back view, side silhouette, or blurred/distance shot to prevent AI anatomy artifacts. Natural modest appearance, appropriate for family audience. Small elegant Clevia logo subtly in one corner.",
   "tiktok_image_prompts": [
     "Slide 1 (Bahasa Inggris): Before / pain point. Relatable tired home interior, slightly messy, overcast soft light, Indonesian home, no product visible, moody but not dark.",
