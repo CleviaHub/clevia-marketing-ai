@@ -140,19 +140,29 @@ def generate_tiktok_images(prompts: list[str]) -> list[str]:
 # 2. INSTAGRAM
 # =============================================================================
 
-def _download_and_upload_image(image_url: str) -> str:
+def _upload_to_catbox(image_url: str) -> str:
     """
-    Download gambar dari URL, upload ke Facebook sebagai file binary.
-    Return: Facebook image URL yang bisa dipakai buat IG posting.
-    Ini workaround karena Meta butuh URL gambar yang stabil.
+    Download gambar dari URL lalu upload ke catbox.moe (anonymous, no account needed).
+    Return: URL publik permanen yang bisa diakses Meta API.
     """
-    import base64, io
-    print(f"[HANDS] ⬇️  Downloading image dari: {image_url[:60]}...")
-    resp = requests.get(image_url, timeout=60)
-    resp.raise_for_status()
-    image_bytes = resp.content
-    print(f"[HANDS] ✅ Image downloaded ({len(image_bytes)} bytes)")
-    return image_bytes
+    print(f"[HANDS] ⬇️  Downloading image: {image_url[:60]}...")
+    img_resp = requests.get(image_url, timeout=60)
+    img_resp.raise_for_status()
+    image_bytes = img_resp.content
+    print(f"[HANDS] ✅ Downloaded ({len(image_bytes)} bytes), uploading ke catbox...")
+
+    upload_resp = requests.post(
+        "https://catbox.moe/user/api.php",
+        data={"reqtype": "fileupload"},
+        files={"fileToUpload": ("image.jpg", image_bytes, "image/jpeg")},
+        timeout=60,
+    )
+    upload_resp.raise_for_status()
+    public_url = upload_resp.text.strip()
+    if not public_url.startswith("https://"):
+        raise ValueError(f"Catbox upload gagal: {public_url}")
+    print(f"[HANDS] ✅ Catbox URL: {public_url}")
+    return public_url
 
 
 def post_instagram(image_url: str, caption: str) -> bool:
@@ -163,39 +173,23 @@ def post_instagram(image_url: str, caption: str) -> bool:
     print("[HANDS] 📸 Posting ke Instagram...")
     base = f"https://graph.facebook.com/v19.0/{IG_BUSINESS_ID}"
 
-    # Download image dulu biar ada binary-nya
+    # Upload ke catbox dulu biar dapet URL publik yang stabil
     try:
-        image_bytes = _download_and_upload_image(image_url)
+        stable_url = _upload_to_catbox(image_url)
     except Exception as e:
-        print(f"[HANDS] ❌ Download image gagal: {e}")
-        return False
+        print(f"[HANDS] ⚠️  Catbox gagal: {e} — pakai URL langsung")
+        stable_url = image_url
 
-    # Step 1: Create container dengan upload binary langsung
+    # Step 1: Create container
     create_resp = requests.post(
         f"{base}/media",
         data={
+            "image_url":    stable_url,
             "caption":      caption,
             "access_token": IG_ACCESS_TOKEN,
-            "media_type":   "IMAGE",
         },
-        files={
-            "image": ("image.jpg", image_bytes, "image/jpeg"),
-        },
-        timeout=60,
+        timeout=30,
     )
-
-    if create_resp.status_code != 200:
-        print(f"[HANDS] ⚠️  Binary upload gagal ({create_resp.status_code}), coba via URL...")
-        # Fallback: coba pakai URL langsung
-        create_resp = requests.post(
-            f"{base}/media",
-            data={
-                "image_url":    image_url,
-                "caption":      caption,
-                "access_token": IG_ACCESS_TOKEN,
-            },
-            timeout=30,
-        )
 
     create_resp.raise_for_status()
     container_id = create_resp.json().get("id")
