@@ -7,6 +7,13 @@ import os
 import time
 import json
 import requests
+from io import BytesIO
+
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 # ── Env vars ──────────────────────────────────────────────────────────────────
 HF_API_TOKEN          = os.environ["HF_API_TOKEN"]           # Hugging Face token
@@ -22,7 +29,11 @@ TIKTOK_ACCESS_TOKEN   = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
 
 # ── Image generation endpoints ────────────────────────────────────────────────
 FLUX_API_URL        = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
-POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&seed={seed}"
+POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&private=true&seed={seed}"
+
+# Berapa persen bagian bawah gambar yang di-crop untuk buang watermark Pollinations.
+# 1024px height → crop ~6% = ~62px dari bawah, cukup buat nutup logo tanpa motong komposisi utama.
+POLLINATIONS_WATERMARK_CROP_RATIO = 0.06
 
 
 # =============================================================================
@@ -51,11 +62,42 @@ def _upload_to_imgbb(image_bytes: bytes) -> str:
     return url
 
 
+def _strip_pollinations_watermark(image_bytes: bytes) -> bytes:
+    """
+    Crop bagian bawah gambar (tempat watermark Pollinations biasa muncul)
+    dan resize balik ke ukuran semula supaya rasio tetap konsisten.
+    Kalau Pillow tidak tersedia atau proses gagal, return bytes asli (no-op).
+    """
+    if not PIL_AVAILABLE:
+        print("[HANDS] ⚠️  Pillow tidak terinstall — skip watermark crop")
+        return image_bytes
+
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        width, height = img.size
+        crop_px = int(height * POLLINATIONS_WATERMARK_CROP_RATIO)
+
+        # Crop bagian bawah, lalu resize balik ke tinggi asli biar rasio 1:1 tetap terjaga
+        cropped = img.crop((0, 0, width, height - crop_px))
+        cropped = cropped.resize((width, height))
+
+        buf = BytesIO()
+        img_format = img.format or "JPEG"
+        cropped.save(buf, format=img_format)
+        print(f"[HANDS] ✂️  Watermark area di-crop ({crop_px}px dari bawah)")
+        return buf.getvalue()
+    except Exception as e:
+        print(f"[HANDS] ⚠️  Crop watermark gagal: {e} — pakai gambar asli")
+        return image_bytes
+
+
 def generate_image(prompt: str, retries: int = 5) -> str:
     """
     Generate gambar via Flux.1 [schnell] di HF Inference API.
     Upload ke ImgBB biar dapet URL publik permanen.
-    Fallback ke Pollinations jika HF atau ImgBB gagal.
+    Fallback ke Pollinations jika HF atau ImgBB gagal — dengan watermark
+    di-crop otomatis sebelum diupload, karena nologo=true di Pollinations
+    tidak selalu konsisten dihormati di tier anonim/gratis.
 
     Brand mandate: lifestyle-first, subtle Clevia logo,
     NO close-up hands/face, NO product bottles.
@@ -114,9 +156,20 @@ def generate_image(prompt: str, retries: int = 5) -> str:
     core = core[:80]
     encoded_prompt = requests.utils.quote(core)
     seed = random.randint(1, 99999)
-    url = POLLINATIONS_URL.format(prompt=encoded_prompt, seed=seed)
-    print(f"[HANDS] 🔗 Pollinations fallback URL (seed={seed}, {len(url)} chars)")
-    return url
+    pollinations_url = POLLINATIONS_URL.format(prompt=encoded_prompt, seed=seed)
+    print(f"[HANDS] 🔗 Pollinations fallback URL (seed={seed}, {len(pollinations_url)} chars)")
+
+    # Download → crop watermark → reupload ke ImgBB biar dapet URL bersih & stabil
+    try:
+        img_resp = requests.get(pollinations_url, timeout=60)
+        img_resp.raise_for_status()
+        clean_bytes = _strip_pollinations_watermark(img_resp.content)
+        clean_url = _upload_to_imgbb(clean_bytes)
+        print(f"[HANDS] ✅ Pollinations image cropped & reuploaded: {clean_url[:60]}...")
+        return clean_url
+    except Exception as e:
+        print(f"[HANDS] ⚠️  Gagal crop/reupload Pollinations image: {e} — pakai URL asli (mungkin ada watermark)")
+        return pollinations_url
 
 
 def generate_tiktok_images(prompts: list[str]) -> list[str]:
