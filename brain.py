@@ -1,6 +1,6 @@
 # =============================================================================
 # brain.py — AI Agents
-# Agent 1: Groq / Llama 3.3 70B      → The Researcher
+# Agent 1: Groq / GPT-OSS 120B      → The Researcher
 # Agent 2: OpenRouter / GLM-5.1      → The Creative Director
 # Universe: "The Quiet Strength" — Novel Blog Clevia 2026
 # =============================================================================
@@ -19,11 +19,11 @@ GROQ_BASE_URL       = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Model config + fallback chain
-GROQ_MODEL          = "llama-3.3-70b-versatile"
-GROQ_FALLBACK_MODEL = "mixtral-8x7b-32768"     # Groq fallback, masih gratis
+GROQ_MODEL          = "openai/gpt-oss-120b"
+GROQ_FALLBACK_MODEL = "openai/gpt-oss-20b"     # Groq fallback, model aktif per Sep 2026
 # Agent 2 sekarang pakai Groq juga — gratis, limit 14,400 req/hari
-AGENT2_MODEL        = "llama-3.3-70b-versatile"   # Groq: bagus buat creative writing & JSON
-AGENT2_FALLBACK     = "mixtral-8x7b-32768"         # Groq: fallback, strong instruction following
+AGENT2_MODEL        = "openai/gpt-oss-120b"   # Groq: bagus buat creative writing & JSON
+AGENT2_FALLBACK     = "openai/gpt-oss-20b"         # Groq: fallback, model aktif per Sep 2026
 
 
 # =============================================================================
@@ -282,7 +282,7 @@ def _parse_json(raw: str, agent_name: str) -> dict:
 # =============================================================================
 
 def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = False) -> str:
-    """Groq API. Fallback: Llama 3.3 → Mixtral → DeepSeek (OpenRouter)."""
+    """Groq API. Fallback: GPT-OSS 120B → GPT-OSS 20B → DeepSeek (OpenRouter)."""
     model   = GROQ_FALLBACK_MODEL if use_fallback else GROQ_MODEL
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": 2000}
@@ -291,9 +291,9 @@ def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = Fa
 
     if resp.status_code == 429:
         if not use_fallback:
-            print(f"[BRAIN] ⚠️  {model} rate limit → Mixtral (Groq)")
+            print(f"[BRAIN] ⚠️  {model} rate limit → {GROQ_FALLBACK_MODEL} (Groq)")
             return _call_groq(messages, temperature=temperature, use_fallback=True)
-        print("[BRAIN] ⚠️  Mixtral rate limit → DeepSeek (OpenRouter)")
+        print(f"[BRAIN] ⚠️  {GROQ_FALLBACK_MODEL} rate limit → DeepSeek (OpenRouter)")
         return _call_groq_agent2(messages, temperature=temperature, use_fallback=True)
 
     resp.raise_for_status()
@@ -303,7 +303,7 @@ def _call_groq(messages: list, temperature: float = 0.7, use_fallback: bool = Fa
 def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: bool = False) -> str:
     """
     Groq API untuk Agent 2 (Creative Director).
-    Gratis, limit 14,400 req/hari. Fallback chain: Llama 3.3 → Mixtral.
+    Gratis, limit 14,400 req/hari. Fallback chain: GPT-OSS 120B → GPT-OSS 20B.
     """
     model = AGENT2_FALLBACK if use_fallback else AGENT2_MODEL
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
@@ -346,7 +346,7 @@ def _call_groq_agent2(messages: list, temperature: float = 0.85, use_fallback: b
 
 
 # =============================================================================
-# AGENT 1 — THE RESEARCHER (Groq / Llama 3.3 70B)
+# AGENT 1 — THE RESEARCHER (Groq / GPT-OSS 120B)
 # =============================================================================
 
 def agent1_researcher(raw_rss_text: str) -> dict:
