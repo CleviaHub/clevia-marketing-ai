@@ -22,7 +22,7 @@ TIKTOK_ACCESS_TOKEN   = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
 
 # ── Image generation endpoints ────────────────────────────────────────────────
 FLUX_API_URL        = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
-POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true"
+POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&seed={seed}"
 
 
 # =============================================================================
@@ -107,13 +107,15 @@ def generate_image(prompt: str, retries: int = 5) -> str:
             print(f"[HANDS] HF error: {e}")
             time.sleep(10)
 
-    # Pollinations fallback — short prompt agar URL nggak ditolak Meta API
+    # Pollinations fallback — short prompt + random seed biar gambar selalu beda
     import re as _re
+    import random
     core = _re.split(r'[,.]|\bOR\b|\bNO\b|\bEITHER\b|\bAVOID\b', prompt)[0].strip()
     core = core[:80]
     encoded_prompt = requests.utils.quote(core)
-    url = POLLINATIONS_URL.format(prompt=encoded_prompt)
-    print(f"[HANDS] 🔗 Pollinations fallback URL ({len(url)} chars)")
+    seed = random.randint(1, 99999)
+    url = POLLINATIONS_URL.format(prompt=encoded_prompt, seed=seed)
+    print(f"[HANDS] 🔗 Pollinations fallback URL (seed={seed}, {len(url)} chars)")
     return url
 
 
