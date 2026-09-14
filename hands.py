@@ -28,12 +28,16 @@ BLOGGER_BLOG_ID       = os.environ["BLOGGER_BLOG_ID"]
 TIKTOK_ACCESS_TOKEN   = os.environ.get("TIKTOK_ACCESS_TOKEN", "")
 
 # ── Image generation endpoints ────────────────────────────────────────────────
-FLUX_API_URL        = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell"
-POLLINATIONS_URL    = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&private=true&seed={seed}"
+# NOTE: api-inference.huggingface.co resmi dimatikan HF (Nov 2025).
+# Endpoint baru wajib lewat router.huggingface.co.
+FLUX_API_URL         = "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell"
+POLLINATIONS_URL     = "https://image.pollinations.ai/prompt/{prompt}?width=1024&height=1024&nologo=true&private=true&seed={seed}"
 
 # Berapa persen bagian bawah gambar yang di-crop untuk buang watermark Pollinations.
-# 1024px height → crop ~6% = ~62px dari bawah, cukup buat nutup logo tanpa motong komposisi utama.
 POLLINATIONS_WATERMARK_CROP_RATIO = 0.06
+
+# User-Agent custom — beberapa host (catbox) suka block default requests UA
+DEFAULT_UA = "Mozilla/5.0 (compatible; CleviaContentBot/1.0)"
 
 
 # =============================================================================
@@ -49,7 +53,7 @@ def _upload_to_imgbb(image_bytes: bytes) -> str:
     imgbb_key = os.environ.get("IMGBB_API_KEY", "")
     if not imgbb_key:
         raise ValueError("IMGBB_API_KEY tidak ada")
-    
+
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     resp = requests.post(
         "https://api.imgbb.com/1/upload",
@@ -77,7 +81,6 @@ def _strip_pollinations_watermark(image_bytes: bytes) -> bytes:
         width, height = img.size
         crop_px = int(height * POLLINATIONS_WATERMARK_CROP_RATIO)
 
-        # Crop bagian bawah, lalu resize balik ke tinggi asli biar rasio 1:1 tetap terjaga
         cropped = img.crop((0, 0, width, height - crop_px))
         cropped = cropped.resize((width, height))
 
@@ -93,11 +96,10 @@ def _strip_pollinations_watermark(image_bytes: bytes) -> bytes:
 
 def generate_image(prompt: str, retries: int = 5) -> str:
     """
-    Generate gambar via Flux.1 [schnell] di HF Inference API.
+    Generate gambar via Flux.1 [schnell] di HF Inference API (router.huggingface.co).
     Upload ke ImgBB biar dapet URL publik permanen.
     Fallback ke Pollinations jika HF atau ImgBB gagal — dengan watermark
-    di-crop otomatis sebelum diupload, karena nologo=true di Pollinations
-    tidak selalu konsisten dihormati di tier anonim/gratis.
+    di-crop otomatis sebelum diupload.
 
     Brand mandate: lifestyle-first, subtle Clevia logo,
     NO close-up hands/face, NO product bottles.
@@ -123,16 +125,15 @@ def generate_image(prompt: str, retries: int = 5) -> str:
 
             if resp.status_code == 200 and resp.headers.get("content-type", "").startswith("image"):
                 print(f"[HANDS] ✅ Flux.1 generate sukses (attempt {attempt+1})")
-                # Upload ke ImgBB biar dapet URL publik
                 try:
                     url = _upload_to_imgbb(resp.content)
                     return url
                 except Exception as e:
                     print(f"[HANDS] ImgBB upload gagal: {e} — fallback Pollinations")
-                    break  # keluar loop, pakai Pollinations
+                    break
 
             if resp.status_code == 503:
-                wait = (attempt + 1) * 15  # 15s, 30s, 45s, 60s, 75s
+                wait = (attempt + 1) * 15
                 print(f"[HANDS] HF model loading... tunggu {wait}s (attempt {attempt+1}/{retries})")
                 time.sleep(wait)
                 continue
@@ -141,6 +142,10 @@ def generate_image(prompt: str, retries: int = 5) -> str:
                 print(f"[HANDS] HF rate limit — tunggu 30s (attempt {attempt+1}/{retries})")
                 time.sleep(30)
                 continue
+
+            if resp.status_code == 410:
+                print(f"[HANDS] ❌ HF 410: model/endpoint deprecated — cek FLUX_API_URL & model availability di router")
+                break
 
             print(f"[HANDS] HF unexpected status {resp.status_code} — fallback Pollinations")
             break
@@ -159,9 +164,8 @@ def generate_image(prompt: str, retries: int = 5) -> str:
     pollinations_url = POLLINATIONS_URL.format(prompt=encoded_prompt, seed=seed)
     print(f"[HANDS] 🔗 Pollinations fallback URL (seed={seed}, {len(pollinations_url)} chars)")
 
-    # Download → crop watermark → reupload ke ImgBB biar dapet URL bersih & stabil
     try:
-        img_resp = requests.get(pollinations_url, timeout=60)
+        img_resp = requests.get(pollinations_url, headers={"User-Agent": DEFAULT_UA}, timeout=60)
         img_resp.raise_for_status()
         clean_bytes = _strip_pollinations_watermark(img_resp.content)
         clean_url = _upload_to_imgbb(clean_bytes)
@@ -201,7 +205,7 @@ def _upload_to_catbox(image_url: str) -> str:
     Return: URL publik permanen yang bisa diakses Meta API.
     """
     print(f"[HANDS] ⬇️  Downloading image: {image_url[:60]}...")
-    img_resp = requests.get(image_url, timeout=60)
+    img_resp = requests.get(image_url, headers={"User-Agent": DEFAULT_UA}, timeout=60)
     img_resp.raise_for_status()
     image_bytes = img_resp.content
     print(f"[HANDS] ✅ Downloaded ({len(image_bytes)} bytes), uploading ke catbox...")
@@ -210,6 +214,7 @@ def _upload_to_catbox(image_url: str) -> str:
         "https://catbox.moe/user/api.php",
         data={"reqtype": "fileupload"},
         files={"fileToUpload": ("image.jpg", image_bytes, "image/jpeg")},
+        headers={"User-Agent": DEFAULT_UA},
         timeout=60,
     )
     upload_resp.raise_for_status()
@@ -228,14 +233,12 @@ def post_instagram(image_url: str, caption: str) -> bool:
     print("[HANDS] 📸 Posting ke Instagram...")
     base = f"https://graph.facebook.com/v19.0/{IG_BUSINESS_ID}"
 
-    # Upload ke catbox dulu biar dapet URL publik yang stabil
     try:
         stable_url = _upload_to_catbox(image_url)
     except Exception as e:
         print(f"[HANDS] ⚠️  Catbox gagal: {e} — pakai URL langsung")
         stable_url = image_url
 
-    # Step 1: Create container
     create_resp = requests.post(
         f"{base}/media",
         data={
@@ -248,15 +251,16 @@ def post_instagram(image_url: str, caption: str) -> bool:
 
     if create_resp.status_code != 200:
         print(f"[HANDS] ❌ IG container error {create_resp.status_code}: {create_resp.text}")
+        if "OAuthException" in create_resp.text or "190" in create_resp.text:
+            print("[HANDS] 🔑 Token kemungkinan expired/invalid — generate ulang INSTAGRAM_ACCESS_TOKEN via Graph API Explorer dan update GitHub secret")
         create_resp.raise_for_status()
     container_id = create_resp.json().get("id")
     if not container_id:
         print(f"[HANDS] ❌ IG container creation gagal: {create_resp.text}")
         return False
 
-    time.sleep(5)  # tunggu container ready
+    time.sleep(5)
 
-    # Step 2: Publish
     publish_resp = requests.post(
         f"{base}/media_publish",
         data={
@@ -288,6 +292,11 @@ def post_facebook(image_url: str, caption: str) -> bool:
         "access_token": FB_ACCESS_TOKEN,
     }, timeout=30)
 
+    if resp.status_code != 200:
+        print(f"[HANDS] ❌ FB post error {resp.status_code}: {resp.text}")
+        if "OAuthException" in resp.text or "190" in resp.text:
+            print("[HANDS] 🔑 Token kemungkinan expired/invalid — generate ulang FB_ACCESS_TOKEN")
+
     resp.raise_for_status()
     post_id = resp.json().get("id")
     print(f"[HANDS] ✅ Facebook posted. Post ID: {post_id}")
@@ -301,7 +310,6 @@ def post_facebook(image_url: str, caption: str) -> bool:
 def _get_blogger_access_token() -> str:
     """
     Tukar refresh_token jadi access_token baru (berlaku 1 jam).
-    Dipanggil setiap kali sebelum posting ke Blogger, jadi token selalu fresh.
     """
     print("[HANDS] 🔑 Refreshing Blogger access token...")
     resp = requests.post(
@@ -323,13 +331,11 @@ def _get_blogger_access_token() -> str:
 def post_blogger(title: str, html_content: str, image_url: str) -> bool:
     """
     Publish artikel ke Google Blogger via Blogger API v3.
-    HTML content dari Agent 2 langsung dipublish.
     """
     print("[HANDS] 📝 Posting ke Google Blogger...")
     access_token = _get_blogger_access_token()
     url = f"https://www.googleapis.com/blogger/v3/blogs/{BLOGGER_BLOG_ID}/posts/"
 
-    # Sisipkan gambar hero di awal artikel
     full_html = (
         f'<div style="text-align:center;margin-bottom:20px;">'
         f'<img src="{image_url}" alt="{title}" style="max-width:100%;border-radius:8px;"/>'
@@ -365,7 +371,6 @@ def post_blogger(title: str, html_content: str, image_url: str) -> bool:
 def post_tiktok_carousel(image_urls: list[str], caption: str) -> bool:
     """
     Publish TikTok Photo Carousel (3 slides) via TikTok Content Posting API.
-    Requires: TIKTOK_ACCESS_TOKEN dengan scope video.publish.
     """
     if not TIKTOK_ACCESS_TOKEN:
         print("[HANDS] ⚠️  TikTok access token tidak ada — skip TikTok posting")
@@ -373,7 +378,6 @@ def post_tiktok_carousel(image_urls: list[str], caption: str) -> bool:
 
     print("[HANDS] 🎵 Posting ke TikTok Photo Carousel...")
 
-    # Step 1: Initialize photo post
     init_url = "https://open.tiktokapis.com/v2/post/publish/content/init/"
     init_payload = {
         "post_info": {
